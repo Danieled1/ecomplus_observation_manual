@@ -1,0 +1,13 @@
+{
+  "name": "ecom-qa-puppeteer",
+  "version": "0.1.0",
+  "description": "Minimal Puppeteer scripts to exercise student flows and capture evidence",
+  "main": "run.js",
+  "scripts": {
+    "start": "node run.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.3.4",
+    "puppeteer-har": "^1.1.0"
+  }
+}

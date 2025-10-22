@@ -1,0 +1,10 @@
+id,severity,page,area,title,steps,actual,expected,evidence,status,owner
+id1,Critical,Login,Auth,Forgot-password missing,Attempt password recovery flow,No forgot-password link present,Forgot-password link available,EVID-001,open,unassigned
+id2,High,Dashboard,Metrics,No central metrics widget,Open dashboard and look for site metrics,No central metrics displayed,EVID-002,open,unassigned
+id3,High,Course,UX,Missing empty-state & loaders,Open course with no lessons,Page shows no helpful empty state,EVID-003,open,unassigned
+id4,High,Lesson,UX,Sticky complete button missing on mobile,Open long lesson on mobile,No sticky mark-complete button,EVID-004,open,unassigned
+id5,Medium,Grades,Data,Missing export/filtering,Open grades page and look for export/filter,No export/filter controls,EVID-005,open,unassigned
+id6,High,Tickets,UX,No pagination & file validation,Create many tickets and inspect history,History list has no pagination; file validation missing,EVID-006,open,unassigned
+id7,Medium,Placement,Data,Resume versioning absent,Upload multiple resumes,No versioning/history for resumes,EVID-007,open,unassigned
+id8,Critical,Reviews,Security,No nonce & no persistence,Submit review form,No nonce check and reviews not stored to CPT,EVID-008,open,unassigned
+id9,Low,Profile,Data,Campaign placeholders present,View profile campaign cards,Campaigns show placeholders instead of data,EVID-009,open,unassigned

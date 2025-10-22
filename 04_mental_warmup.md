@@ -67,3 +67,4 @@ Every “I don’t know” you write is a *sign of control,* not weakness.
 - Open `student/login.md`.  
 - Start typing your first “Have / Missing / Pending / Post-Launch.”  
 - After 15 minutes you’ll already feel momentum.  
+ecomplus_observation_manual

@@ -161,6 +161,15 @@ It combines three layers:
 4. Conduct RTL + mobile QA for new sub-tabs and course cards.
 5. Add analytics (event tracking) for tab clicks and certificate views.
 
+### Role Behavior Notes (Observation Only)
+
+- **Admin:** currently redirected to WP Admin (not using profile hub).  
+- **Instructor:** lands on same hub view with link to “Instructor Dashboard”.  
+  - _Open question:_ should instructors go **directly** to `/instructor-dashboard` after login? (Decision for Amit/Ben.)
+- **Student:** hub without instructor tools.  
+- **Future idea (not for now, just captured):**  
+  Use Profile as a living “mini-resume” that fills itself via milestones (projects/tests/certificates/badges).  
+  Logged as a **Post-Launch** concept.
 ---
 
 **Prepared by:** Daniel Edri

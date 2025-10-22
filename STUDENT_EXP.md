@@ -45,8 +45,7 @@ This layer reflects the student’s digital journey inside Ecom+, built on **Bud
 - Lack of a **central API layer** — heavy reliance on direct AJAX calls.
 - Missing **student review persistence** and unified analytics.
 - Accessibility (focus states, keyboard flow, aria labels) pending audit.
-- No full **offline or mobile QA** completed yet.
-
+- No full *
 ---
 
 ## 5️⃣ Immediate Next Steps

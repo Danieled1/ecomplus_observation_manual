@@ -1,0 +1,16 @@
+# OS noise
+.DS_Store
+Thumbs.db
+
+# editors
+.vscode/
+.idea/
+
+# scripts / temp
+tmp/
+*.log
+
+# folders
+
+puppeteer-app/
+node_modules/ 

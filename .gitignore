@@ -1,16 +1,112 @@
-# OS noise
-.DS_Store
-Thumbs.db
+# ==================================================
+#  ECOM OBSERVATION / QA WORKSPACE GITIGNORE
+#  (Covers all paths you showed)
+# ==================================================
 
-# editors
+# -----------------------------
+# 🧱 Node.js dependencies & caches
+# -----------------------------
+node_modules/
+qa/puppeteer/node_modules/
+puppeteer-app/node_modules/
+puppeteer-app/.cache/
+puppeteer-app/tmp/
+.npm/
+.nvm/
+npm-debug.log*
+*.log
+.DS_Store
+
+# -----------------------------
+# ⚙️ Environment & system files
+# -----------------------------
+.env
+.env.local
+.env.test
+Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.bak
+*.tmp
 
-# scripts / temp
-tmp/
-*.log
+# -----------------------------
+# 🧾 QA Automation Outputs
+# -----------------------------
+# Ignore ALL generated runs, screenshots, JSONs, HARs, etc.
+qa/puppeteer/output/
+qa/puppeteer/output/**
+qa/puppeteer/output/**/*
 
-# folders
+# Keep orchestrator and source code
+!qa/puppeteer/orchestrator.js
+!qa/puppeteer/run.js
+!qa/puppeteer/generate_evidence.js
+!qa/puppeteer/package.json
+!qa/puppeteer/package-lock.json
+!qa/puppeteer/README.md
+!qa/puppeteer/flows/**
+!qa/puppeteer/tools/**
+!qa/puppeteer/.env.example
 
+# -----------------------------
+# 🧰 Puppeteer Framework Reference (read-only)
+# -----------------------------
+# Keep everything under puppeteer-app/ for reference,
+# but ignore its build outputs and caches
+puppeteer-app/output/
+puppeteer-app/output/**
+puppeteer-app/.continue/temp/
+puppeteer-app/exports/*.csv
+puppeteer-app/exports/*.json
+puppeteer-app/staged-diff-*.txt
 puppeteer-app/
-node_modules/ 
+
+# -----------------------------
+# 🧮 Generated Reports / Artifacts
+# -----------------------------
+# Ignore dynamically generated test/evidence files
+qa/evidence/**/*.png
+qa/evidence/**/*.har
+qa/evidence/**/*.zip
+qa/evidence/**/*.mp4
+qa/evidence/run.har
+
+# But KEEP markdown documentation and templates
+!qa/evidence/**/*.md
+!qa/evidence_template.md
+!qa/puppeteer_inventory.md
+!qa/student_page_checklist.md
+!qa/how_to_capture_evidence.md
+!qa/ai_prompt_templates.md
+!qa/buddypanel.md
+!qa/flow_mapping.md
+
+# -----------------------------
+# 🧑‍🏫 Content Folders (Docs/Manual)
+# -----------------------------
+# Keep everything under student/, teacher/, staff/
+# since they contain markdown learning materials
+!student/**
+!teacher/**
+!staff/**
+
+# -----------------------------
+# 🗃️ Backup / Misc files
+# -----------------------------
+*.zip
+*.tar.gz
+*.7z
+*.bak
+*.old
+*.orig
+*.rej
+*.sublime-workspace
+*.sublime-project
+
+# -----------------------------
+# 🧩 OS and editor trash
+# -----------------------------
+ehthumbs.db
+Desktop.ini
+Icon?

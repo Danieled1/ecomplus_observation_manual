@@ -17,7 +17,7 @@ How to use
 | `student/grades.md`    | Grades                      | `flows/gradesFlow.js`                                  | full     | Confirm AJAX network call name (`fetch_client_grades`) and capture HAR. Ensure table renders.                                   |              |
 | `student/tickets.md`   | Tickets                     | `flows/ticketFlow.js`, `flows/ticketEmptyStateFlow.js` | partial  | Confirm ACF field names used in the form. Check for file upload control selector and submission confirmation.                   |              |
 | `student/placement.md` | Placement                   | `flows/placementFlow.js` (in `puppeteer-app/flows`)    | partial  | If not copied, we need to import `placementFlow.js` from `puppeteer-app`. Confirm resume upload selector and notification flow. |              |
-| `student/reviews.md`   | Reviews                     | `flows/supportFlow.js` or custom                       | none     | The reviews template likely needs a custom flow to test nonce & persistence. Add a small flow to submit and capture result.     |              |
+| `student/reviews.md`   | Reviews                     | `flows/supportFlow.js`, `flows/reviewsFlow.js`         | none     | The reviews template likely needs a custom flow to test nonce & persistence. Add a small flow to submit and capture result.     |              |
 | `student/profile.md`   | Profile                     | `flows/coursesFlow.js` (group tabs)                    | partial  | Confirm dynamic group tabs selector and campaign card. Check for placeholders and save screenshot.                              |              |
 | `student/support.md`   | Support / Technical Support | `flows/supportFlow.js`                                 | full     | Confirm CTA link to Google Form or portal; capture click behavior and fallback.                                                 |              |
 
@@ -29,3 +29,25 @@ Next actions (short)
 4. I will ingest evidence and expand `DEFECTS.csv` and update `QA_Report_Student_Experience_v1.md`.
 
 If you want I can scan `puppeteer-app/flows` now and pre-fill `Coverage` and `Next actions` automatically — say "Scan flows" and I'll do that.
+
+links: (AI student)
+
+https://app.digitalschool.co.il/courses/chatgpt/
+https://app.digitalschool.co.il/courses/%d7%a7%d7%95%d7%a8%d7%a1-digital-ai-%d7%9e%d7%aa%d7%a2%d7%93%d7%9b%d7%9f/
+https://app.digitalschool.co.il/courses/nlp/
+
+https://app.digitalschool.co.il/courses/chatgpt/lessons/%d7%a9%d7%99%d7%a2%d7%95%d7%a8-2-3/
+
+https://app.digitalschool.co.il/technical-support-guide/
+https://app.digitalschool.co.il/tickets/
+https://app.digitalschool.co.il/placement/
+https://app.digitalschool.co.il/grades/
+https://app.digitalschool.co.il/%d7%9e%d7%a9%d7%95%d7%912/
+https://app.digitalschool.co.il/members/test_live_student/courses/
+https://app.digitalschool.co.il/members/test_live_student/
+https://app.digitalschool.co.il/members/test_live_student/friends/
+https://app.digitalschool.co.il/members/test_live_student/certificates/
+https://app.digitalschool.co.il/members/test_live_student/settings/
+https://app.digitalschool.co.il/members/test_live_student/messages/compose/
+https://app.digitalschool.co.il/members/test_live_student/groups/
+https://app.digitalschool.co.il/members/test_live_student/notifications/

@@ -5,6 +5,22 @@ _Date: 20 Oct 2025 – Author: Daniel Edri_
 
 ---
 
+## ✅ Automated QA Baseline (Student flows)
+
+- Run folder: `qa/puppeteer/output/run-2025-10-23T17-57-29-833Z`
+- Overall coverage: 100% (all executed flows)
+- Flows executed: login, courses (4), lesson, ticket, grades, profile, reviews, support, placement
+- Sidebar validation:
+  - Tickets: sidebarNavOk=true (matched)
+  - Grades: sidebarNavOk=true (matched)
+  - Support: sidebarNavOk=true (matched)
+  - Placement: sidebarNavOk=true (matched)
+  - Reviews: sidebarFound=true, sidebarLinkFound=false (not applicable)
+
+Note on planner fix: Support and Placement weren’t appearing due to a module-load guard returning null when an optional metrics logger wasn’t present. We made the logger optional in `supportFlow.js` and `placementFlow.js` and inserted Support/Placement earlier in the plan using BuddyPanel defaults (`/technical-support-guide/`, `/placement/`).
+
+---
+
 ## 1️⃣ Overview
 
 Students interact through a streamlined set of front‑facing pages designed to handle all academic and operational flows — from login and course access to grades, tickets, and placement updates.  
@@ -45,7 +61,8 @@ This layer reflects the student’s digital journey inside Ecom+, built on **Bud
 - Lack of a **central API layer** — heavy reliance on direct AJAX calls.
 - Missing **student review persistence** and unified analytics.
 - Accessibility (focus states, keyboard flow, aria labels) pending audit.
-- No full *
+- No full \*
+
 ---
 
 ## 5️⃣ Immediate Next Steps

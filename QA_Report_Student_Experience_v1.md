@@ -81,6 +81,34 @@ _Note: these AI stubs are intended as a starting point for manual verification. 
 
 ---
 
+## Automated assertion layer — Student (status)
+
+This summarizes the functional assertions implemented in the automation tooling and what will be validated on the next run.
+
+| Flow         | Key assertions (examples)                                                                            | Evidence (HAR/console/screens) | Run status | Notes                             |
+| ------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------ | ---------- | --------------------------------- |
+| Login        | loginSuccess (post-login selectors), logoutClearsSession (isolated context), cookies set             | Yes                            | Pending    | —                                 |
+| Courses list | courseCardsPresent, anyCourseHasLessons, anyCourseStepsExtracted                                     | Yes                            | Pending    | Capped breadth to avoid timeouts  |
+| Course page  | startOrContinueClicked, navigatedToLesson                                                            | Yes                            | Pending    | —                                 |
+| Lesson page  | playerPresent, videoPlayback, resumeSaved (native-video heuristic), markCompleteGated (pre‑playback) | Yes                            | Pending    | —                                 |
+| Grades       | xhrCaptured, gradesRowsDetected, gradesMatchesApi (DOM count vs API length)                          | Yes                            | Pending    | —                                 |
+| Tickets      | titleFilled/contentFilled, submitSuccess, ticketAppearsInList                                        | Yes                            | Pending    | —                                 |
+| Profile      | profileHeaderPresent, buddyPanelPresent, minTabsVisited, profileUpdatePersisted (safe edit + revert) | Yes                            | Pending    | Soft time budgets applied         |
+| Placement    | formPresent, resumeInputPresent, uploadAcknowledged, resumeFilenamePersists (after reload)           | Yes                            | Pending    | —                                 |
+| Reviews      | reviewFormPresent, ratingSet, reviewSubmitAcknowledged                                               | Yes                            | Pending    | Sidebar link may be N/A by design |
+| Support      | supportHeaderPresent, supportButtonPresent, supportFormOpened                                        | Yes                            | Pending    | —                                 |
+
+Next actions (automation):
+
+- Run the orchestrator with current caps/timeouts to keep 100% evidence coverage.
+- Export coverage.json and results.json; include assertion rollups per flow and overall.
+- Summarize passes/fails and open defects; add rows to DEFECTS.csv referencing evidence IDs.
+- Reconfirm BuddyPanel sidebar validation screenshots for Tickets/Grades/Support/Placement.
+
+Target: ≥95% assertion pass across core flows; evidence coverage at 100% for executed flows.
+
+---
+
 ## Remediation suggestions (initial)
 
 | Evidence | Top blocker                              | Suggested fix (concise)                                                                                                                 | Suggested owner | Estimate |

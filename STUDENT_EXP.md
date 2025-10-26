@@ -7,10 +7,10 @@ _Date: 20 Oct 2025 – Author: Daniel Edri_
 
 ## ✅ Automated QA Baseline (Student flows)
 
-- Run folder: `qa/puppeteer/output/run-2025-10-23T17-57-29-833Z`
-- Overall coverage: 100% (all executed flows)
-- Flows executed: login, courses (4), lesson, ticket, grades, profile, reviews, support, placement
-- Sidebar validation:
+- Previous validated run: `qa/puppeteer/output/run-2025-10-23T17-57-29-833Z` → coverage 100% (executed flows)
+- Assertion layer expanded across all student flows (login, courses list/detail, lesson, grades, tickets, profile, support, placement, reviews)
+- Next: execute a new run to collect assertion pass/fail rollups and update evidence
+- Sidebar validation (from last run):
   - Tickets: sidebarNavOk=true (matched)
   - Grades: sidebarNavOk=true (matched)
   - Support: sidebarNavOk=true (matched)

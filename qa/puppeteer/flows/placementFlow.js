@@ -126,6 +126,19 @@ module.exports = async function placementFlow(page, context = {}) {
     assertions.push(mkAssert({ id: 'resumeInputPresent', label: 'Resume file input present', pass: !!uploadSel, selector: uploadSel, screenshot: shotUpload }));
     assertions.push(mkAssert({ id: 'resumeUploadAttempt', label: 'Resume file upload attempted', pass: uploadAttempted, selector: uploadSel, screenshot: shotUpload }));
     assertions.push(mkAssert({ id: 'resumeUploadAcknowledged', label: 'Resume upload acknowledged by UI', pass: uploadAcknowledged, selector: uploadSel, screenshot: shotUpload, text: uploadInfo }));
+    // Functional: filename persists after reload
+    let filenamePersists = false;
+    try {
+      if (uploadAcknowledged && uploadInfo) {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{});
+        const ackSelectors = ['.file-name', '.uploaded', '.acf-file-uploader .filename', '.acf-file-uploader .file-info', '[data-file-name]'];
+        for (const s of ackSelectors) {
+          const txt = await page.$eval(s, el => (el.innerText || el.getAttribute('data-file-name') || '').trim()).catch(()=> '');
+          if (txt && uploadInfo && (txt === uploadInfo || txt.includes(path.basename(uploadInfo)))) { filenamePersists = true; break; }
+        }
+      }
+    } catch(e) {}
+    assertions.push(mkAssert({ id: 'resumeFilenamePersists', label: 'Resume filename persists after reload', pass: filenamePersists }));
     
     const totalTime = Math.round(performance.now() - flowStart);
     console.log(`📊 placementFlow completed in ${totalTime}ms`);

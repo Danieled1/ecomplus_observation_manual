@@ -51,6 +51,18 @@ module.exports = async function supportFlow(page, context= {}) {
   assertions.push(mkAssert({ id: 'supportHeaderPresent', label: 'Support header title present', pass: hasHeaderTitle, selector: '.header-title' }));
   assertions.push(mkAssert({ id: 'supportButtonPresent', label: 'Support button present', pass: hasSupportBtn, selector: '.support-button' }));
 
+  // Functional: Open the support ticket form successfully
+  let formOpened = false;
+  try {
+    const btn = await page.$('.support-button');
+    if (btn) {
+      await btn.click().catch(()=>{});
+      await page.waitForTimeout(800);
+      formOpened = !!(await page.$('form, .gform_wrapper, .wpcf7-form, .acf-form, .support-form'));
+    }
+  } catch (e) {}
+  assertions.push(mkAssert({ id: 'supportFormOpened', label: 'Support ticket form opened', pass: formOpened }));
+
     // 🧭 UX: Scroll responsiveness and external redirect testing can be done in Layer 4
 
     const totalTime = Math.round(performance.now() - flowStart);

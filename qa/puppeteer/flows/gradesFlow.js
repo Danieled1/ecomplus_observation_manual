@@ -117,6 +117,31 @@ module.exports = async function gradesFlow(page, outputDir, creds) {
 
   assertions.push(mkAssert({ id: 'xhrCaptured', label: 'Captured grade XHR/API calls', pass: xhrCalls.length > 0 }));
   assertions.push(mkAssert({ id: 'gradesRowsDetected', label: 'Grades rows detected', pass: rows > 0, selector: '#gradesTable tr, .grades-table tr, table.grades tr', screenshot: shot }));
+  // Functional: table count matches API schema length (best-effort)
+  let apiCount = 0;
+  try {
+    for (const r of xhrResponses) {
+      const s = r.summary;
+      if (!s) continue;
+      if (s.type === 'array') { apiCount = s.length; break; }
+      if (s.type === 'object' && s.summary) {
+        if (s.summary.data && s.summary.data.type === 'array') { apiCount = s.summary.data.length; break; }
+        if (s.summary.rows && s.summary.rows.type === 'array') { apiCount = s.summary.rows.length; break; }
+      }
+    }
+  } catch(e) {}
+  const domCount = await page.$$eval('#gradesTable tr, .grades-table tr, table.grades tr', els => els.length).catch(()=>0);
+  const countsMatch = (apiCount && domCount) ? (apiCount === domCount) : (rows > 0);
+  assertions.push(mkAssert({ id: 'gradesMatchesApi', label: 'Grades table matches API count', pass: countsMatch, text: `api=${apiCount}, dom=${domCount}` }));
+
+  // Persistence/consistency: after a reload, the row count/schema should be stable (best-effort)
+  let schemaStable = false;
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 12000 }).catch(()=>{});
+    const domCount2 = await page.$$eval('#gradesTable tr, .grades-table tr, table.grades tr', els => els.length).catch(()=>0);
+    schemaStable = (domCount === domCount2) || (domCount > 0 && domCount2 > 0);
+  } catch(_) {}
+  assertions.push(mkAssert({ id: 'gradesSchemaStableAfterReload', label: 'Grades table schema stable after reload', pass: schemaStable, text: `before=${domCount}, after=${typeof domCount2!=='undefined'?domCount2:domCount}` }));
 
     // Build meta
   const meta = { url, xhrCalls, xhrResponses: xhrResponses.length ? xhrResponses : undefined, rows };

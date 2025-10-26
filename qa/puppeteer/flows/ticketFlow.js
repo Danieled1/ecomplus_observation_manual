@@ -35,6 +35,7 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
       '#ticket_title',
       'input[type="text"]'
     ];
+    const titleText = `QA test ticket ${Date.now()}`;
     let typedTitle = false;
     let usedTitleSel = null;
     for (const sel of titleSelectors) {
@@ -42,7 +43,7 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
         const handle = await page.$(sel);
         if (handle) {
           await handle.click({ clickCount: 3 }).catch(()=>{});
-          await page.type(sel, `QA test ticket ${Date.now()}`, { delay: 20 });
+          await page.type(sel, titleText, { delay: 20 });
           typedTitle = true;
           usedTitleSel = sel;
           console.log('[ticketFlow] typed title using', sel);
@@ -53,9 +54,16 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
       }
     }
     if (!typedTitle) console.warn('[ticketFlow] no title selector matched; continuing');
-    assertions.push(mkAssert({ id: 'titleFilled', label: 'Ticket title field filled', pass: typedTitle, selector: usedTitleSel, screenshot: shotLanding }));
-
-    // Try to fill rich content: prefer TinyMCE iframe if present, else textarea fallbacks
+  assertions.push(mkAssert({ id: 'titleFilled', label: 'Ticket title field filled', pass: typedTitle, selector: usedTitleSel, screenshot: shotLanding }));
+    // Functional: New ticket appears in the list after submit (search table/grid for the title)
+    let ticketInList = false;
+    try {
+      // small wait to allow list refresh
+      await page.waitForTimeout(1000);
+      const text = await page.evaluate(() => document.body && document.body.innerText ? document.body.innerText : '');
+      ticketInList = text.includes(titleText);
+    } catch (e) {}
+    assertions.push(mkAssert({ id: 'ticketAppearsInList', label: 'New ticket appears in list after submit', pass: ticketInList, text: titleText }));
     const tinyMCESelectors = ['iframe[id$="_ifr"]', 'iframe[id^="acf-editor-"]', 'iframe.tox-edit-area__iframe'];
     let contentTyped = false;
     let usedContentSel = null;
@@ -152,10 +160,15 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
       try {
         const btn = await page.$(sel);
         if (btn) {
-          // Try to click and wait a short while for navigation or network
-          await Promise.all([
-            btn.click().catch(()=>{}),
-            page.waitForTimeout(1500)
+          // Click submit and then allow either a navigation or an AJAX response to settle
+          await btn.click().catch(()=>{});
+          await Promise.race([
+            page.waitForNavigation({ waitUntil: ['domcontentloaded','load','networkidle2'], timeout: 15000 }).catch(() => null),
+            page.waitForResponse(
+              res => res.url().includes('admin-ajax.php') && res.request().method() === 'POST',
+              { timeout: 12000 }
+            ).catch(() => null),
+            page.waitForTimeout(2000)
           ]);
           submitted = true;
           usedSubmitSel = sel;
@@ -169,8 +182,9 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
     if (!submitted) console.warn('[ticketFlow] no submit button found; attempt skipped');
     assertions.push(mkAssert({ id: 'submitClicked', label: 'Submit button clicked', pass: submitted, selector: usedSubmitSel, screenshot: shotFilled }));
 
-    await page.waitForTimeout(1200);
-    const shotAfter = `${outputDir}/tickets_after_submit.png`;
+  // Final small wait to ensure DOM is stable before reading success banners
+  await page.waitForTimeout(800);
+  const shotAfter = `${outputDir}/tickets_after_submit.png`;
     await page.screenshot({ path: shotAfter }).catch(()=>{});
 
     // Detect success via common banners or updated list
@@ -199,6 +213,22 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
       if (!submitSuccess && rows > 0) submitSuccess = true;
     } catch(e) {}
     assertions.push(mkAssert({ id: 'submitSuccess', label: 'Ticket submit acknowledged', pass: submitSuccess, selector: successSelectors.join(', '), screenshot: shotAfter, text: successText }));
+
+    // Persistence: Reload /tickets/ and confirm the new ticket title appears
+    let ticketPersists = false;
+    try {
+      // Ensure any pending navigation/AJAX is complete before reloading
+      await Promise.race([
+        page.waitForNavigation({ waitUntil: ['domcontentloaded','load','networkidle2'], timeout: 8000 }).catch(() => null),
+        page.waitForTimeout(800)
+      ]);
+      // Use a direct goto back to the canonical list to avoid SPA states
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(()=>{});
+      await page.waitForTimeout(900);
+      const body = await page.evaluate(() => document.body && document.body.innerText ? document.body.innerText : '');
+      if (body && titleText && body.includes(titleText)) ticketPersists = true;
+    } catch(e) {}
+    assertions.push(mkAssert({ id: 'ticketPersistsAfterReload', label: 'New ticket visible after reload', pass: ticketPersists, text: titleText }));
 
     // BuddyPanel validation (non-blocking)
     try {

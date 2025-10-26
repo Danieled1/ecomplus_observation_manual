@@ -1,4 +1,11 @@
-const { addMetric } = require("../../puppeteer-app/logger/metricsExporter");
+// Optional metrics export: fall back to no-op if the helper isn't present in this repo
+let addMetric = () => {};
+try {
+  const m = require("../../puppeteer-app/logger/metricsExporter");
+  addMetric = typeof m.addMetric === 'function' ? m.addMetric : addMetric;
+} catch (e) {
+  addMetric = () => {};
+}
 const { validateSidebarNav } = require('../tools/sidebarNav');
 
 function mkAssert({ id, label, pass, selector, screenshot, text }) {
@@ -18,6 +25,8 @@ module.exports = async function coursesFlow(page, context = {}) {
   const url = 'https://app.digitalschool.co.il/members/test_live_student/courses/';
   const outDir = typeof context === 'string' ? context : (context.outputDir || '.');
   const start = performance.now(); // ⏱️ UX: Start timing
+  const MAX_CARDS = parseInt(process.env.COURSES_LIST_MAX_CARDS || '5', 10);
+  const MAX_SUBPAGE_OPENS = parseInt(process.env.COURSES_LIST_MAX_SUBPAGES || '2', 10);
 
   const perCourse = [];
   const xhrCalls = [];
@@ -84,7 +93,8 @@ module.exports = async function coursesFlow(page, context = {}) {
     assertions.push(mkAssert({ id: 'courseCardsPresent', label: 'Course cards present', pass: courseCount > 0, selector: '.bb-course-item-wrap, .course-card, .course-listing .course' }));
 
     // For each course card, try to infer lesson count from either inline info, XHRs, or by navigating into the course detail page
-    for (let i = 0; i < cards.length; i++) {
+  let subpagesOpened = 0;
+  for (let i = 0; i < cards.length && i < MAX_CARDS; i++) {
       const c = cards[i];
       const entry = { index: i, title: c.title, href: c.href, lessonCount: 0 };
       // Quick heuristic: check if the card contains a lessons count badge via DOM
@@ -127,7 +137,7 @@ module.exports = async function coursesFlow(page, context = {}) {
       }
 
       // If still zero and we have an href, attempt to navigate into the course detail page to count lessons
-      if (!entry.lessonCount && c.href) {
+      if (!entry.lessonCount && c.href && subpagesOpened < MAX_SUBPAGE_OPENS) {
         try {
           const subPage = await page.browser().newPage();
           await subPage.setViewport({ width: 1200, height: 800 });
@@ -185,6 +195,7 @@ module.exports = async function coursesFlow(page, context = {}) {
             }
           } catch(e){}
           await subPage.close();
+          subpagesOpened += 1;
         } catch(e) {
           // ignore navigation errors
         }

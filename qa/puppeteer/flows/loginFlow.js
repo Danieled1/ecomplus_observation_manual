@@ -27,7 +27,19 @@ module.exports = async function loginFlow(page, outputDir, creds = {}) {
   const username = creds.email || process.env.STUDENT_EMAIL;
   const password = creds.password || process.env.STUDENT_PASSWORD;
   const loginUrl = (creds.url || process.env.STAGING_URL || '').replace(/\/+$/, '') + '/wp-login.php';
+  const trace = [];
+  const onFrameNav = frame => {
+    try {
+      const u = frame.url();
+      if (!u) return;
+      const p = new URL(u).pathname || '';
+      if (/\/wp-login\.php/i.test(p)) {
+        trace.push({ ts: new Date().toISOString(), type: 'nav.loginPageDetected', url: u });
+      }
+    } catch (_) {}
+  };
   try {
+    try { page.on('framenavigated', onFrameNav); } catch(_){}
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/115');
     await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     const shotLanding = `${outputDir}/login_page.png`;
@@ -52,15 +64,25 @@ module.exports = async function loginFlow(page, outputDir, creds = {}) {
     await delay(1000);
     const cookies = await page.cookies();
     const hasLoginCookie = Array.isArray(cookies) && cookies.some(c => /wordpress_logged_in/i.test(c.name));
+    // Heuristic login success: look for common logged-in selectors
+    const loggedInSelectors = ['.bb-user-nav', '.bb-user-avatar', 'a[href*="logout"], .logout', '.wp-admin-bar-my-account'];
+    let loginSuccess = false;
+    for (const sel of loggedInSelectors) {
+      try { if (await page.$(sel)) { loginSuccess = true; break; } } catch(e){}
+    }
     const totalTime = Math.round(performance.now() - start);
 
     const shotAfter = `${outputDir}/after_login.png`;
     await page.screenshot({ path: shotAfter }).catch(()=>{});
     assertions.push(mkAssert({ id: 'loginCookiePresent', label: 'Login session cookie present', pass: hasLoginCookie, text: hasLoginCookie ? 'wordpress_logged_in' : 'missing' }));
+    assertions.push(mkAssert({ id: 'loginSuccess', label: 'Login success indicators present', pass: loginSuccess }));
 
-    return { ok: true, meta: { url: loginUrl, submitMs: Math.round(submitEnd - submitStart), totalMs: totalTime, cookies, assertions }, };
+  return { ok: true, meta: { url: loginUrl, submitMs: Math.round(submitEnd - submitStart), totalMs: totalTime, cookies, assertions, trace }, };
   } catch (err) {
     await page.screenshot({ path: `${outputDir}/login_error.png` }).catch(()=>{});
-    return { ok: false, error: err.message, meta: { url: loginUrl, assertions: [] } };
+    return { ok: false, error: err.message, meta: { url: loginUrl, assertions: [], trace } };
+  }
+  finally {
+    try { page.removeListener('framenavigated', onFrameNav); } catch(_){}
   }
 }

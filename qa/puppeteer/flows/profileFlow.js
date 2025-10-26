@@ -191,6 +191,81 @@ module.exports = async function profileFlow(page, outputDir, creds = {}) {
 
     assertions.push(mkAssert({ id: 'minTabsVisited', label: 'Minimum tabs visited', pass: successCount >= MIN_SUCCESS_TABS, text: `visited=${successCount}, min=${MIN_SUCCESS_TABS}` }));
 
+  // Functional: attempt a safe profile update and verify persistence, then revert
+  let updatePersisted = false;
+  let updateSelectorUsed = null;
+  let nicknamePersisted = false;
+    try {
+      // Find an edit link or settings/profile edit tab
+      let editHref = null;
+      try {
+        const cand = await page.$$eval('a', els => els.map(a => a.href || '').filter(Boolean));
+        for (const h of cand) {
+          const hh = h.toLowerCase();
+          if (hh.includes('/profile/edit') || hh.includes('/settings/') || hh.includes('edit/')) { editHref = h; break; }
+        }
+      } catch(e) {}
+      if (editHref) {
+        await page.goto(editHref, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{});
+        await page.waitForTimeout(600);
+      }
+      // Try a specific, safe field first: nickname
+      let fieldHandle = await page.$('input[name="nickname"], #nickname');
+      let targetingNickname = false;
+      if (fieldHandle) { targetingNickname = true; }
+      // Fallback to a generic text input/textarea (excluding email/username)
+      if (!fieldHandle) {
+        fieldHandle = await page.$('form input[type="text"]:not([name*="email"]):not([id*="email"]):not([name*="user"]):not([id*="user"]), form textarea');
+      }
+      if (fieldHandle) {
+        updateSelectorUsed = await page.evaluate(el => {
+          const id = el.id ? `#${el.id}` : null; const name = el.name ? `input[name="${el.name}"]` : null; return id || name || 'form input[type="text"], form textarea';
+        }, fieldHandle).catch(()=> 'form input[type="text"], form textarea');
+        let original = '';
+        try { original = await page.$eval(updateSelectorUsed, el => el.value || el.textContent || ''); } catch(e) {}
+        const stamp = ` QA ${new Date().toISOString().slice(11,19)}`;
+        const nextVal = targetingNickname ? `nickname_test${stamp}` : (original || 'Test') + stamp;
+        try {
+          await page.focus(updateSelectorUsed).catch(()=>{});
+          await page.evaluate(sel => { const el = document.querySelector(sel); if (el) { el.focus(); el.value = ''; } }, updateSelectorUsed).catch(()=>{});
+          await page.type(updateSelectorUsed, nextVal, { delay: 10 }).catch(()=>{});
+        } catch(e) {}
+        // Save via a submit button
+        try {
+          const saveSel = 'form button[type="submit"], form input[type="submit"], .button.save, .bb-save, button.save';
+          const saveBtn = await page.$(saveSel);
+          if (saveBtn) {
+            await Promise.race([
+              page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{}),
+              saveBtn.click().catch(()=>{})
+            ]);
+          }
+        } catch(e) {}
+        await page.waitForTimeout(800);
+        // Reload form page and verify persisted
+        try { await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{}); } catch(e){}
+        let readBack = '';
+        try { readBack = await page.$eval(updateSelectorUsed, el => el.value || el.textContent || ''); } catch(e) {}
+        if (readBack && readBack.includes(stamp)) updatePersisted = true;
+        if (targetingNickname && readBack && readBack.includes('nickname_test')) nicknamePersisted = true;
+        // Attempt to revert to original to avoid leaving test data
+        try {
+          await page.focus(updateSelectorUsed).catch(()=>{});
+          await page.evaluate((sel, val) => { const el = document.querySelector(sel); if (el) { el.value = val; } }, updateSelectorUsed, original).catch(()=>{});
+          const saveSel = 'form button[type="submit"], form input[type="submit"], .button.save, .bb-save, button.save';
+          const saveBtn2 = await page.$(saveSel);
+          if (saveBtn2) {
+            await Promise.race([
+              page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{}),
+              saveBtn2.click().catch(()=>{})
+            ]);
+          }
+        } catch(e) {}
+      }
+    } catch (e) {}
+    assertions.push(mkAssert({ id: 'profileUpdatePersisted', label: 'Profile update persisted (and reverted)', pass: updatePersisted, selector: updateSelectorUsed }));
+    if (nicknamePersisted) assertions.push(mkAssert({ id: 'nicknamePersisted', label: 'Nickname persisted after save', pass: true, selector: updateSelectorUsed }));
+
     // collect console log sample and include in meta for debug
     let consoleSample = null;
     try {

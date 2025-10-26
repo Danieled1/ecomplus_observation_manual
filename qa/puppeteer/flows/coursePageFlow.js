@@ -207,6 +207,47 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
   try { headerPresent = !!(await page.$('header, .bb-header, .site-header')); } catch(e) {}
   assertions.push(mkAssert({ id: 'courseHeaderPresent', label: 'Course header present', pass: headerPresent }));
 
+  // Functional: attempt to start/continue course and open a lesson
+  let startClicked = false;
+  let navigatedToLesson = false;
+  try {
+    const startSelectors = [
+      'a.bb-button, a.button, button, .ld-button, .btn'
+    ];
+    const labelMatches = [/continue/i, /start/i, /התחל/, /המשך/];
+    // Find a clickable element whose text matches common labels
+    let handle = null;
+    for (const sel of startSelectors) {
+      const hs = await page.$$(sel);
+      for (const h of hs) {
+        try {
+          const t = (await page.evaluate(el => (el.innerText||'') + ' ' + (el.value||''), h)) || '';
+          if (labelMatches.some(r => r.test(t))) { handle = h; break; }
+        } catch(e){}
+      }
+      if (handle) break;
+    }
+    if (!handle) {
+      // Fallback: the course content list first lesson link
+      handle = await page.$('.ld-lesson-list a, .lesson-list a, .bb-lesson-item a');
+    }
+    if (handle) {
+      await Promise.race([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 12000 }).catch(()=>{}),
+        handle.click().catch(()=>{})
+      ]);
+      startClicked = true;
+      try {
+        const p = new URL(page.url());
+        if (p.pathname.includes('/lessons/')) navigatedToLesson = true;
+      } catch(e) {
+        navigatedToLesson = /\/lessons\//.test(page.url());
+      }
+    }
+  } catch(e) {}
+  assertions.push(mkAssert({ id: 'startOrContinueClicked', label: 'Start/Continue course clicked', pass: startClicked }));
+  assertions.push(mkAssert({ id: 'navigatedToLesson', label: 'Navigated to a lesson from course page', pass: navigatedToLesson }));
+
   const meta = { url, lessonCount, assertions };
     if (stepsFile) meta.stepsFile = stepsFile;
     return { ok: true, meta, screenshots };

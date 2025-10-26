@@ -44,6 +44,46 @@ module.exports = async function reviewsFlow(page, outputDir, creds = {}) {
   try { meta.inputCount = await page.$$eval('input, textarea, select', els => els.length).catch(()=>0); } catch(e) {}
   assertions.push(mkAssert({ id: 'reviewInputsPresent', label: 'Review inputs present', pass: (meta.inputCount || 0) > 0 }));
 
+    // Functional: rating input validated and submit acknowledgment
+    let ratingSet = false;
+    let reviewSubmitted = false;
+    try {
+      // Try common rating input patterns
+      const ratingSelectors = ['input[type="radio"][name*="rating"], input[type="number"][name*="rating"], input[type="range"][name*="rating"], .rating input[type="radio"]'];
+      let rSel = null;
+      for (const sel of ratingSelectors) {
+        const h = await page.$(sel);
+        if (h) { rSel = sel; break; }
+      }
+      if (rSel) {
+        // pick the highest value radio if available
+        const radios = await page.$$(rSel);
+        if (radios && radios.length) {
+          const last = radios[radios.length - 1];
+          await last.click().catch(()=>{});
+          ratingSet = true;
+        } else {
+          // fallback to set value via evaluate for number/range
+          await page.evaluate(sel => { const el = document.querySelector(sel); if (el) { el.value = el.max || 5; el.dispatchEvent(new Event('change', { bubbles: true })); } }, rSel).catch(()=>{});
+          ratingSet = true;
+        }
+        // Attempt to submit the form
+        const submitSel = 'form button[type="submit"], form input[type="submit"], button[type="submit"]';
+        const btn = await page.$(submitSel);
+        if (btn) {
+          await Promise.race([
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{}),
+            btn.click().catch(()=>{})
+          ]);
+          await page.waitForTimeout(800);
+          const successSel = '.gform_confirmation_message, .bb-notice.success, .message-success, .alert-success, .elementor-message-success, .wpcf7-mail-sent-ok, .acf-notice.-success';
+          reviewSubmitted = !!(await page.$(successSel));
+        }
+      }
+    } catch(e) {}
+    assertions.push(mkAssert({ id: 'ratingSet', label: 'Rating input set', pass: ratingSet }));
+    assertions.push(mkAssert({ id: 'reviewSubmitAcknowledged', label: 'Review submission acknowledged', pass: reviewSubmitted }));
+
     // Mark header for coverage 'counts'
     const header = await page.$('header, .bb-header, .site-header');
     if (header) meta.headerPresent = true;

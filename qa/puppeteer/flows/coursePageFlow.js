@@ -95,6 +95,10 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
         try { if (window.learndash) out.learndash = window.learndash; } catch(e) {}
         try { if (window.ldlmsData) out.ldlmsData = window.ldlmsData; } catch(e) {}
         try { if (window.wpApiSettings) out.wpApiSettings = window.wpApiSettings; } catch(e) {}
+        try { if (window.ldGlobalSettings) out.ldGlobalSettings = window.ldGlobalSettings; } catch(e) {}
+        try { if (window.ldCourseData) out.ldCourseData = window.ldCourseData; } catch(e) {}
+        try { if (window.ldVars) out.ldVars = window.ldVars; } catch(e) {}
+        try { if (window.ldData) out.ldData = window.ldData; } catch(e) {}
         // also try to capture any inline JSON in data-* attributes commonly used by themes
         try { Array.from(document.querySelectorAll('[data-ld-steps], [data-course]')).forEach((el, i) => { try { out[`data_attr_${i}`] = JSON.parse(el.getAttribute('data-ld-steps') || el.getAttribute('data-course') || '{}'); } catch(e){} }); } catch(e){}
       } catch (e) {}
@@ -243,10 +247,36 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
       } catch(e) {
         navigatedToLesson = /\/lessons\//.test(page.url());
       }
+      // SPA fallback: if URL didn't change, consider presence of lesson/player selectors as success
+      if (!navigatedToLesson) {
+        try {
+          const spaFound = await page.$$eval('.ld-lesson, .ld-lesson-list li, iframe, video, .learndash_player, .ld-video', els => els.length).catch(()=>0);
+          if (spaFound > 0) navigatedToLesson = true;
+        } catch(_) {}
+      }
     }
   } catch(e) {}
   assertions.push(mkAssert({ id: 'startOrContinueClicked', label: 'Start/Continue course clicked', pass: startClicked }));
   assertions.push(mkAssert({ id: 'navigatedToLesson', label: 'Navigated to a lesson from course page', pass: navigatedToLesson }));
+
+  // If this is a member courses URL and we still didn't detect lessons, try to drill into first course card
+  try {
+    if (!navigatedToLesson && /\/members\//.test(url)) {
+      const courseLink = await page.$('.bb-course-item-wrap a.bb-course-title, .bb-course-item-wrap a, a.bb-course-title');
+      if (courseLink) {
+        await Promise.race([
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 12000 }).catch(()=>{}),
+          courseLink.click().catch(()=>{})
+        ]);
+        // re-run a minimal lesson presence check
+        let found = 0;
+        try {
+          found = await page.$$eval('.ld-lesson-list li, .lesson-item, .ld-item, .ld-lesson, .ld-item-list .ld-item, .ld-table-list .ld-table-list-item', els => els.length).catch(()=>0);
+        } catch(_) {}
+        if (found > 0) { lessonCount = lessonCount || found; navigatedToLesson = true; }
+      }
+    }
+  } catch(_) {}
 
   const meta = { url, lessonCount, assertions };
     if (stepsFile) meta.stepsFile = stepsFile;

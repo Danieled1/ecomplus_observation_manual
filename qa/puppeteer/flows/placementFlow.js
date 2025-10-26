@@ -84,32 +84,63 @@ module.exports = async function placementFlow(page, context = {}) {
       assertions.push(mkAssert({ id: 'relatedCoursesPresent', label: 'Related courses listed', pass: false, selector: '#courses-placement .bb-course-item-wrap' }));
     }
 
-    // Resume upload (scaffold): try to select a file input and assign a small dummy file, assert UI change
+        // Resume upload (targeted): locate the real file input (ACF often hides it), try enabling basic uploader,
+        // force visible, upload a dummy file, dispatch change, await UI ack
     let uploadSel = null;
     let uploadAttempted = false;
     let uploadAcknowledged = false;
     let uploadInfo = '';
     try {
-      const fileSelCandidates = [
-        'input[type="file"][name*="resume"]',
-        'input[type="file"][id*="resume"]',
-        'input[type="file"]'
-      ];
-      for (const sel of fileSelCandidates) {
-        const el = await page.$(sel);
-        if (el) { uploadSel = sel; break; }
-      }
-      if (uploadSel) {
+          // If ACF hides the native input behind WP Media, try switching to the basic uploader first
+          try {
+            const basicToggles = [
+              'a[data-name="basic-uploader"]',
+              '.acf-basic-uploader',
+              'a[href*="basic-uploader"]',
+              '.acf-file-uploader .acf-actions a'
+            ];
+            for (const t of basicToggles) {
+              const link = await page.$(t);
+              if (link) { await link.click().catch(()=>{}); await page.waitForTimeout(400); break; }
+            }
+          } catch(_) {}
+          // First, pick any input[type=file] even if hidden
+          let fileHandle = null;
+          const fileSelCandidates = [
+            'input[type="file"][name^="acf"]',
+            'input[type="file"][name*="resume"]',
+            'input[type="file"][id*="resume"]',
+            'input[type="file"]'
+          ];
+          for (const sel of fileSelCandidates) {
+            const el = await page.$(sel);
+            if (el) { uploadSel = sel; fileHandle = el; break; }
+          }
+          if (!fileHandle) {
+            const all = await page.$$('input[type="file"]');
+            if (all && all.length) { fileHandle = all[0]; uploadSel = 'input[type="file"]'; }
+          }
+          // If still not found, at least note the presence of an ACF file uploader wrapper
+          if (!fileHandle) {
+            const wrapper = await page.$('.acf-file-uploader, .acf-field-file, [data-type="file"]');
+            if (wrapper) uploadSel = '.acf-file-uploader';
+          }
+          if (fileHandle) {
         // create a tiny dummy file in output directory
         const outDir = typeof context === 'string' ? context : (context.outputDir || '.');
         const dummyPath = path.join(outDir, 'dummy-resume.txt');
         try { fs.writeFileSync(dummyPath, 'QA dummy resume file'); } catch(_) {}
-        const handle = await page.$(uploadSel);
-        if (handle && fs.existsSync(dummyPath)) {
-          await handle.uploadFile(dummyPath).catch(()=>{});
+            if (fs.existsSync(dummyPath)) {
+          // Ensure input is actionable (ACF often hides the real input)
+                try { await page.$eval(uploadSel, el => { el.style.display = 'block'; el.style.visibility = 'visible'; el.style.position = 'static'; el.style.opacity = '1'; el.removeAttribute('disabled'); el.removeAttribute('aria-hidden'); }); } catch(_) {}
+                await fileHandle.uploadFile(dummyPath).catch(()=>{});
+                // Dispatch a change event so ACF hooks fire
+                try { await page.$eval(uploadSel, el => { el.dispatchEvent(new Event('change', { bubbles: true })); }); } catch(_) {}
           uploadAttempted = true;
           // Heuristic: look for filename echo or "uploaded" label
-          const ackSelectors = ['.file-name', '.uploaded', '.acf-file-uploader .filename', '.acf-file-uploader .file-info', '[data-file-name]'];
+                const ackSelectors = ['.file-name', '.uploaded', '.acf-file-uploader .filename', '.acf-file-uploader .file-info', '[data-file-name]', '.acf-file-uploader a[href*="uploads"]'];
+                // wait briefly for DOM to update
+                await page.waitForTimeout(800);
           for (const s of ackSelectors) {
             const found = await page.$(s);
             if (found) {
@@ -129,12 +160,13 @@ module.exports = async function placementFlow(page, context = {}) {
     // Functional: filename persists after reload
     let filenamePersists = false;
     try {
-      if (uploadAcknowledged && uploadInfo) {
+          if (uploadAcknowledged && uploadInfo) {
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{});
-        const ackSelectors = ['.file-name', '.uploaded', '.acf-file-uploader .filename', '.acf-file-uploader .file-info', '[data-file-name]'];
+            const ackSelectors = ['.file-name', '.uploaded', '.acf-file-uploader .filename', '.acf-file-uploader .file-info', '[data-file-name]', '.acf-file-uploader a[href*="uploads"]'];
+            await page.waitForTimeout(700);
         for (const s of ackSelectors) {
-          const txt = await page.$eval(s, el => (el.innerText || el.getAttribute('data-file-name') || '').trim()).catch(()=> '');
-          if (txt && uploadInfo && (txt === uploadInfo || txt.includes(path.basename(uploadInfo)))) { filenamePersists = true; break; }
+              const txt = await page.$eval(s, el => (el.innerText || el.getAttribute('data-file-name') || el.getAttribute('href') || '').trim()).catch(()=> '');
+              if (txt && uploadInfo && (txt === uploadInfo || txt.includes(path.basename(uploadInfo)) || path.basename(txt) === path.basename(uploadInfo))) { filenamePersists = true; break; }
         }
       }
     } catch(e) {}

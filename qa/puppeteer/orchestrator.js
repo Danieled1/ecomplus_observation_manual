@@ -371,6 +371,24 @@ async function runAll(creds) {
     }
   } catch (e) {}
 
+  // Optional focused run filter: if RUN_ONLY is set (comma-separated), keep only matching runNames (exact or prefix)
+  try {
+    const raw = process.env.RUN_ONLY;
+    if (raw && typeof raw === 'string' && raw.trim()) {
+      const tokens = raw.split(',').map(s => s.trim()).filter(Boolean);
+      if (tokens.length) {
+        const wasPlanned = planned.plannedRuns.slice();
+        planned.plannedRuns = planned.plannedRuns.filter(r => tokens.some(t => r.runName === t || r.runName.startsWith(t)) || r.runName === 'login' || r.runName === 'logout');
+        // Ensure login exists at the beginning to establish session if any non-login runs remain
+        const haveLogin = planned.plannedRuns.find(r => r.runName === 'login');
+        const haveNonLogin = planned.plannedRuns.find(r => r.runName !== 'login');
+        if (!haveLogin && haveNonLogin && flowsToRequire['loginFlow']) {
+          planned.plannedRuns.unshift({ runName: 'login', module: flowsToRequire['loginFlow'] });
+        }
+      }
+    }
+  } catch (e) { console.warn('[orchestrator] RUN_ONLY filter error', e && e.message); }
+
   // Persist flow plan for transparency inside the run directory, include which flows were required
   try { planned.requiredFlows = Object.keys(flowsToRequire); } catch (e) {}
   try { console.log('[orchestrator] required flows:', Object.keys(flowsToRequire)); } catch (e) {}

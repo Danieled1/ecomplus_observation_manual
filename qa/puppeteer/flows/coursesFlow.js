@@ -145,7 +145,7 @@ module.exports = async function coursesFlow(page, context = {}) {
           const cookies = await page.cookies();
           if (cookies && cookies.length) await subPage.setCookie(...cookies);
           await subPage.goto(c.href, { waitUntil: 'domcontentloaded', timeout: 20000 });
-          const sel = '.ld-lesson-list li, .lesson-item, .ld-item, .ld-lesson, ul.lessons li, .lesson-list li, .bb-lesson-item';
+          const sel = '.ld-lesson-list li, .lesson-item, .ld-item, .ld-lesson, ul.lessons li, .lesson-list li, .bb-lesson-item, .ld-item-list .ld-item, .ld-item-list .ld-item-list-item, .ld-table-list .ld-table-list-item, .ld-lesson-items li, .bb-course-lesson-item, .ld-course-content .ld-item-list-item';
           let found = 0;
           for (let r=0;r<5;r++) {
             found = await subPage.$$eval(sel, els => els.length).catch(()=>0);
@@ -164,10 +164,17 @@ module.exports = async function coursesFlow(page, context = {}) {
                 const scripts = Array.from(document.querySelectorAll('script[type="application/json"]'));
                 scripts.forEach((s, i) => { try { out[`script_json_${i}`] = JSON.parse(s.textContent); } catch(e){} });
               } catch(e){}
+              try { if (window.ldGlobalSettings) out.ldGlobalSettings = window.ldGlobalSettings; } catch(e){}
               try { if (window.wpApiSettings) out.wpApiSettings = window.wpApiSettings; } catch(e){}
               try { if (window.ldlms) out.ldlms = window.ldlms; } catch(e){}
               try { if (window.learndash) out.learndash = window.learndash; } catch(e){}
               try { if (window.ldlmsData) out.ldlmsData = window.ldlmsData; } catch(e){}
+              // Additional LearnDash globals sometimes used by themes
+              try { if (window.ldCourseData) out.ldCourseData = window.ldCourseData; } catch(e){}
+              try { if (window.ldVars) out.ldVars = window.ldVars; } catch(e){}
+              try { if (window.ldData) out.ldData = window.ldData; } catch(e){}
+              // data-* payloads
+              try { Array.from(document.querySelectorAll('[data-ld-steps], [data-course]')).forEach((el, i) => { try { out[`data_attr_${i}`] = JSON.parse(el.getAttribute('data-ld-steps') || el.getAttribute('data-course') || '{}'); } catch(e){} }); } catch(e){}
               return out;
             }).catch(()=>({}));
             if (inlineFound && Object.keys(inlineFound).length) {

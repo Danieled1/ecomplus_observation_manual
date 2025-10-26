@@ -55,15 +55,8 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
     }
     if (!typedTitle) console.warn('[ticketFlow] no title selector matched; continuing');
   assertions.push(mkAssert({ id: 'titleFilled', label: 'Ticket title field filled', pass: typedTitle, selector: usedTitleSel, screenshot: shotLanding }));
-    // Functional: New ticket appears in the list after submit (search table/grid for the title)
+    // Defer immediate appearance check until after submit to avoid false negatives
     let ticketInList = false;
-    try {
-      // small wait to allow list refresh
-      await page.waitForTimeout(1000);
-      const text = await page.evaluate(() => document.body && document.body.innerText ? document.body.innerText : '');
-      ticketInList = text.includes(titleText);
-    } catch (e) {}
-    assertions.push(mkAssert({ id: 'ticketAppearsInList', label: 'New ticket appears in list after submit', pass: ticketInList, text: titleText }));
     const tinyMCESelectors = ['iframe[id$="_ifr"]', 'iframe[id^="acf-editor-"]', 'iframe.tox-edit-area__iframe'];
     let contentTyped = false;
     let usedContentSel = null;
@@ -187,7 +180,7 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
   const shotAfter = `${outputDir}/tickets_after_submit.png`;
     await page.screenshot({ path: shotAfter }).catch(()=>{});
 
-    // Detect success via common banners or updated list
+  // Detect success via common banners or updated list
     let submitSuccess = false;
     let successText = '';
     const successSelectors = [
@@ -214,7 +207,19 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
     } catch(e) {}
     assertions.push(mkAssert({ id: 'submitSuccess', label: 'Ticket submit acknowledged', pass: submitSuccess, selector: successSelectors.join(', '), screenshot: shotAfter, text: successText }));
 
-    // Persistence: Reload /tickets/ and confirm the new ticket title appears
+    // Immediate appearance check (without reload) after submit/banner
+    try {
+      const rowText = await page.evaluate(() => {
+        const sel = 'table tbody tr, .tickets-list .ticket-row, .bb-table tbody tr';
+        const rows = Array.from(document.querySelectorAll(sel));
+        if (!rows.length) return (document.body?.innerText || '');
+        return rows.map(r => r.innerText).join('\n');
+      });
+      ticketInList = !!(rowText && rowText.includes(titleText));
+    } catch(_) {}
+    assertions.push(mkAssert({ id: 'ticketAppearsInList', label: 'New ticket appears in list after submit', pass: ticketInList, text: titleText }));
+
+    // Persistence: Reload /tickets/ and confirm the new ticket title appears (with small polling + cache-busting)
     let ticketPersists = false;
     try {
       // Ensure any pending navigation/AJAX is complete before reloading
@@ -222,11 +227,27 @@ module.exports = async function ticketFlow(page, outputDir, creds = {}) {
         page.waitForNavigation({ waitUntil: ['domcontentloaded','load','networkidle2'], timeout: 8000 }).catch(() => null),
         page.waitForTimeout(800)
       ]);
-      // Use a direct goto back to the canonical list to avoid SPA states
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(()=>{});
-      await page.waitForTimeout(900);
-      const body = await page.evaluate(() => document.body && document.body.innerText ? document.body.innerText : '');
-      if (body && titleText && body.includes(titleText)) ticketPersists = true;
+      const maxPoll = 5;
+      for (let i = 0; i < maxPoll && !ticketPersists; i++) {
+        const bust = `?_=${Date.now()}`;
+        await page.goto(url + bust, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(()=>{});
+        await page.waitForTimeout(1000);
+        // try to trigger any AJAX-driven list refresh by clicking a common refresh or pagination control if present
+        try {
+          const controls = await page.$$('.pagination a, .tablenav .next, .tablenav .prev, .reload, .refresh-button, a.view-all, a[rel="next"], a[rel="prev"]');
+          if (controls && controls.length) {
+            for (const c of controls.slice(0,2)) { await c.click().catch(()=>{}); await page.waitForTimeout(500); }
+          }
+        } catch(_) {}
+        const scan = await page.evaluate(() => {
+          const bodies = [
+            ...Array.from(document.querySelectorAll('table tbody tr, .tickets-list .ticket-row, .bb-table tbody tr')).map(r => r.innerText),
+            (document.body && document.body.innerText) || ''
+          ];
+          return bodies.join('\n');
+        });
+        if (scan && titleText && scan.includes(titleText)) { ticketPersists = true; break; }
+      }
     } catch(e) {}
     assertions.push(mkAssert({ id: 'ticketPersistsAfterReload', label: 'New ticket visible after reload', pass: ticketPersists, text: titleText }));
 

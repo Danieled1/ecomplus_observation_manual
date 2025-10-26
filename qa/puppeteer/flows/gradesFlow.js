@@ -130,18 +130,24 @@ module.exports = async function gradesFlow(page, outputDir, creds) {
       }
     }
   } catch(e) {}
-  const domCount = await page.$$eval('#gradesTable tr, .grades-table tr, table.grades tr', els => els.length).catch(()=>0);
+  const domCount = await page.$$eval('#gradesTable tbody tr, .grades-table tbody tr, table.grades tbody tr', els => els.length).catch(()=>0);
   const countsMatch = (apiCount && domCount) ? (apiCount === domCount) : (rows > 0);
   assertions.push(mkAssert({ id: 'gradesMatchesApi', label: 'Grades table matches API count', pass: countsMatch, text: `api=${apiCount}, dom=${domCount}` }));
 
   // Persistence/consistency: after a reload, the row count/schema should be stable (best-effort)
   let schemaStable = false;
+  let domCount2 = 0;
   try {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 12000 }).catch(()=>{});
-    const domCount2 = await page.$$eval('#gradesTable tr, .grades-table tr, table.grades tr', els => els.length).catch(()=>0);
+    // Wait briefly for AJAX to repopulate the table, with small retries
+    for (let i=0;i<6;i++) {
+      domCount2 = await page.$$eval('#gradesTable tbody tr, .grades-table tbody tr, table.grades tbody tr', els => els.length).catch(()=>0);
+      if (domCount2 > 0) break;
+      await new Promise(r => setTimeout(r, 400));
+    }
     schemaStable = (domCount === domCount2) || (domCount > 0 && domCount2 > 0);
   } catch(_) {}
-  assertions.push(mkAssert({ id: 'gradesSchemaStableAfterReload', label: 'Grades table schema stable after reload', pass: schemaStable, text: `before=${domCount}, after=${typeof domCount2!=='undefined'?domCount2:domCount}` }));
+  assertions.push(mkAssert({ id: 'gradesSchemaStableAfterReload', label: 'Grades table schema stable after reload', pass: schemaStable, text: `before=${domCount}, after=${domCount2}` }));
 
     // Build meta
   const meta = { url, xhrCalls, xhrResponses: xhrResponses.length ? xhrResponses : undefined, rows };

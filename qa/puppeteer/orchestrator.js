@@ -211,14 +211,19 @@ async function runAll(creds) {
       if (meta && meta.loginVerified) present.push('loginVerified');
     }
     const percent = Math.round((present.length / totalItems.length) * 100);
-    // Assertion rollup (small addition): summarize pass/total from meta.assertions if present
-    let assertions = { total: 0, passed: 0, percent: 0 };
+    // Assertion rollup (Phase 7): summarize with deterministic/stateful tags and timing if available
+    let assertions = { total: 0, passed: 0, percent: 0, deterministic: { total: 0, passed: 0 }, stateful: { total: 0, passed: 0 }, slow: [] };
     try {
       const arr = Array.isArray(meta.assertions) ? meta.assertions : [];
       const total = arr.length;
       const passed = arr.filter(a => a && a.pass === true).length;
       const ap = total ? Math.round((passed / total) * 100) : 0;
-      assertions = { total, passed, percent: ap };
+      const detArr = arr.filter(a => (a && (a.type === 'deterministic')));
+      const stfArr = arr.filter(a => (a && (a.type === 'stateful')));
+      const det = { total: detArr.length, passed: detArr.filter(a => a.pass).length };
+      const stf = { total: stfArr.length, passed: stfArr.filter(a => a.pass).length };
+      const slow = arr.filter(a => typeof a.elapsedMs === 'number' && a.elapsedMs > 2000).map(a => ({ id: a.id, elapsedMs: a.elapsedMs }));
+      assertions = { total, passed, percent: ap, deterministic: det, stateful: stf, slow };
     } catch (e) {}
     return { runName, total: totalItems.length, present: present.length, percent, items: { total: totalItems, present }, assertions };
   }
@@ -377,6 +382,9 @@ async function runAll(creds) {
     if (raw && typeof raw === 'string' && raw.trim()) {
       const tokens = raw.split(',').map(s => s.trim()).filter(Boolean);
       if (tokens.length) {
+        // Special-case: 'all' means do not filter the plan
+        const hasAll = tokens.some(t => t.toLowerCase() === 'all');
+        if (!hasAll) {
         const wasPlanned = planned.plannedRuns.slice();
         planned.plannedRuns = planned.plannedRuns.filter(r => tokens.some(t => r.runName === t || r.runName.startsWith(t)) || r.runName === 'login' || r.runName === 'logout');
         // Ensure login exists at the beginning to establish session if any non-login runs remain
@@ -384,6 +392,7 @@ async function runAll(creds) {
         const haveNonLogin = planned.plannedRuns.find(r => r.runName !== 'login');
         if (!haveLogin && haveNonLogin && flowsToRequire['loginFlow']) {
           planned.plannedRuns.unshift({ runName: 'login', module: flowsToRequire['loginFlow'] });
+        }
         }
       }
     }
@@ -456,12 +465,77 @@ async function runAll(creds) {
   async function runFlow(name, fn, ...args) {
     const harPath = path.join(runDir, `${name}.har`);
     const consolePath = path.join(runDir, `${name}.console.log`);
+    // Phase 6: introspective per-flow logging (additive only)
+    const flowLogsDir = path.join(runDir, 'flow_logs');
+    try { fs.mkdirSync(flowLogsDir, { recursive: true }); } catch (_) {}
+    const flowLogPath = path.join(flowLogsDir, `${name}.log`);
+    const flog = [];
+    const flogWrite = () => { try { fs.writeFileSync(flowLogPath, flog.join('\n')); } catch (_) {} };
     const logs = [];
     const trace = [];
     const now = () => new Date().toISOString();
-    const mark = (type, data) => { try { trace.push(Object.assign({ ts: now(), type }, data || {})); } catch(e) {} };
+    const mark = (type, data) => {
+      try {
+        const entry = Object.assign({ ts: now(), type }, data || {});
+        trace.push(entry);
+        // Mirror key events to flow log
+        if (type.startsWith('nav.') || type.startsWith('run.') || type.includes('error') || type.includes('timeout') || type === 'assertions.summary') {
+          flog.push(`${entry.ts} [trace] ${type} ${entry.url ? entry.url : ''} ${entry.name ? '('+entry.name+')' : ''} ${typeof entry.durationMs==='number' ? ('durationMs='+entry.durationMs) : ''}`.trim());
+        }
+      } catch(e) {}
+    };
     const flowPage = await browser.newPage();
     try { await flowPage.setViewport(defaultViewport); } catch(e){}
+    // Instrument common selector calls ($, $$, waitForSelector) without altering flow logic
+    try {
+      const orig$ = flowPage.$.bind(flowPage);
+      flowPage.$ = async (selector, ...rest) => {
+        const t0 = Date.now();
+        try { const h = await orig$(selector, ...rest); return h; }
+        finally {
+          const dt = Date.now() - t0; flog.push(`${now()} [select] $ ${selector} -> ${typeof h!=='undefined' && h ? 'FOUND' : 'NULL'} in ${dt}ms`);
+        }
+      };
+    } catch (_) {}
+    try {
+      const orig$$ = flowPage.$$.bind(flowPage);
+      flowPage.$$ = async (selector, ...rest) => {
+        const t0 = Date.now();
+        try { const arr = await orig$$(selector, ...rest); return arr; }
+        finally {
+          const dt = Date.now() - t0; flog.push(`${now()} [select] $$ ${selector} -> count? in ${dt}ms`);
+        }
+      };
+    } catch (_) {}
+    try {
+      const origWait = flowPage.waitForSelector.bind(flowPage);
+      flowPage.waitForSelector = async (selector, opts) => {
+        const t0 = Date.now();
+        try {
+          const h = await origWait(selector, opts);
+          const dt = Date.now() - t0; flog.push(`${now()} [wait] waitForSelector ${selector} OK in ${dt}ms`);
+          return h;
+        } catch (e) {
+          const dt = Date.now() - t0; flog.push(`${now()} [wait] waitForSelector ${selector} ERROR in ${dt}ms: ${e && e.message}`);
+          throw e;
+        }
+      };
+    } catch (_) {}
+    // Network logging for conditional branches (e.g., admin-ajax)
+    try {
+      flowPage.on('response', res => {
+        try {
+          const url = res.url();
+          if (url.includes('admin-ajax.php') || url.includes('ajax')) {
+            flog.push(`${now()} [net] response ${res.request().method()} ${url} ${res.status()}`);
+          }
+        } catch (_) {}
+      });
+      flowPage.on('requestfailed', req => {
+        try { flog.push(`${now()} [net] requestfailed ${req.method()} ${req.url()} ${req.failure() && req.failure().errorText}`); } catch (_) {}
+      });
+      flowPage.on('pageerror', err => { try { flog.push(`${now()} [pageerror] ${err && err.message}`); } catch (_) {} });
+    } catch (_) {}
     const onConsole = msg => {
       try { logs.push(`${new Date().toISOString()} [${msg.type()}] ${msg.text()}`); } catch(e) {}
     };
@@ -530,7 +604,7 @@ async function runAll(creds) {
   try { flowPage.removeListener('domcontentloaded', onDomContent); } catch(e){}
   try { flowPage.removeListener('load', onLoad); } catch(e){}
   try { flowPage.removeListener('framenavigated', onFrameNav); } catch(e){}
-      try { fs.writeFileSync(consolePath, logs.join('\n')); mark('console.write', { file: consolePath, lines: logs.length }); } catch(e) { mark('console.write.error', { error: e && e.message }); }
+  try { fs.writeFileSync(consolePath, logs.join('\n')); mark('console.write', { file: consolePath, lines: logs.length }); } catch(e) { mark('console.write.error', { error: e && e.message }); }
       try { await flowPage.close(); } catch(e){}
       // Give Chromium a brief moment to attach the next flow's page target before cleanup
       try { await new Promise(r => setTimeout(r, 500)); } catch(_) {}
@@ -576,6 +650,15 @@ async function runAll(creds) {
           try {
             const ids = res.meta.assertions.map(a => a && a.id).filter(Boolean).slice(0, 50); // cap to keep trace light
             mark('assertions.summary', { total: res.meta.assertions.length, ids });
+            // Also write assertion outcomes into flow log
+            try {
+              flog.push(`${now()} [assertions] total=${res.meta.assertions.length}`);
+              for (const a of res.meta.assertions) {
+                if (!a) continue;
+                const aid = a.id || a.label || 'unknown';
+                flog.push(`${now()} [assert] ${aid} -> ${a.pass ? 'PASS' : 'FAIL'}`);
+              }
+            } catch (_) {}
           } catch (e) { /* noop */ }
         }
         const existing = Array.isArray(res.meta.trace) ? res.meta.trace : [];
@@ -584,6 +667,8 @@ async function runAll(creds) {
         mark('run.complete', { name, ok: !!res.ok });
         res.meta.trace = existing.concat(trace);
       } catch (e) { /* ignore trace errors */ }
+      // Persist flow log last
+      try { flogWrite(); } catch (_) {}
     }
     return res;
   }
@@ -602,6 +687,22 @@ async function runAll(creds) {
         uniq.push(a);
       }
       meta.assertions = uniq;
+    } catch (_) {}
+    return meta;
+  }
+
+  // Phase 7: classify assertions as deterministic or stateful when flows didn't tag them
+  function classifyAssertions(meta) {
+    try {
+      if (!meta || !Array.isArray(meta.assertions)) return meta;
+      for (const a of meta.assertions) {
+        if (!a || a.type) continue;
+        const id = (a.id || '').toLowerCase();
+        const label = (a.label || '').toLowerCase();
+        const txt = id + ' ' + label;
+        const isStateful = /(persist|appears|submit|saved|relogin|acknowledge|ajax|reload|after)/.test(txt);
+        a.type = isStateful ? 'stateful' : 'deterministic';
+      }
     } catch (_) {}
     return meta;
   }
@@ -635,8 +736,8 @@ async function runAll(creds) {
         }
         const args = [creds].concat(r.args || []);
         const res = await runFlow(r.runName, r.module, ...args);
-        // Ensure each assertion is unique by id
-        try { if (res && res.meta) res.meta = dedupeAssertions(res.meta); } catch (_) {}
+  // Ensure each assertion is unique by id and tagged
+  try { if (res && res.meta) { res.meta = dedupeAssertions(res.meta); res.meta = classifyAssertions(res.meta); } } catch (_) {}
         // Annotate pre-flow auth status in result meta for traceability
         try { if (res && res.meta) res.meta.sessionActiveStart = !!preAuth; } catch (_) {}
         // If this was the login run, capture cookies for reuse
@@ -770,7 +871,7 @@ async function runAll(creds) {
     try {
       // (logout is scheduled as a dedicated flow at the end of planned runs)
 
-      const coverage = { runId: runId, date: new Date().toISOString(), perFlow: [], overall: { total: 0, covered: 0, percent: 0 }, assertionsOverall: { total: 0, passed: 0, percent: 0 } };
+  const coverage = { runId: runId, date: new Date().toISOString(), perFlow: [], overall: { total: 0, covered: 0, percent: 0 }, assertionsOverall: { total: 0, passed: 0, percent: 0 }, deterministicOverall: { total: 0, passed: 0, percent: 0 }, slowAssertions: [] };
       // For courses array
       if (Array.isArray(results.courses)) {
         for (let i = 0; i < results.courses.length; i++) {
@@ -800,14 +901,23 @@ async function runAll(creds) {
   // assertion overall rollup (sum of totals and passed across flows)
   try {
     const aTotals = coverage.perFlow.reduce((acc, p) => {
-      const a = p && p.assertions ? p.assertions : { total: 0, passed: 0 };
+      const a = p && p.assertions ? p.assertions : { total: 0, passed: 0, deterministic: { total: 0, passed: 0 }, slow: [] };
       acc.total += a.total || 0;
       acc.passed += a.passed || 0;
+      acc.detTotal += (a.deterministic && a.deterministic.total) || 0;
+      acc.detPassed += (a.deterministic && a.deterministic.passed) || 0;
+      // Collect slow assertions with a flow prefix for context
+      const flowSlow = Array.isArray(a.slow) ? a.slow.map(s => Object.assign({ flow: p.runName }, s)) : [];
+      acc.slow = acc.slow.concat(flowSlow);
       return acc;
-    }, { total: 0, passed: 0 });
+    }, { total: 0, passed: 0, detTotal: 0, detPassed: 0, slow: [] });
     coverage.assertionsOverall.total = aTotals.total;
     coverage.assertionsOverall.passed = aTotals.passed;
     coverage.assertionsOverall.percent = aTotals.total ? Math.round((aTotals.passed / aTotals.total) * 100) : 0;
+    coverage.deterministicOverall.total = aTotals.detTotal;
+    coverage.deterministicOverall.passed = aTotals.detPassed;
+    coverage.deterministicOverall.percent = aTotals.detTotal ? Math.round((aTotals.detPassed / aTotals.detTotal) * 100) : 0;
+    coverage.slowAssertions = aTotals.slow.sort((a,b) => (b.elapsedMs||0) - (a.elapsedMs||0));
   } catch (e) {}
   // close the browser now that analysis which relied on it is complete
   try { await browser.close(); } catch(e) {}

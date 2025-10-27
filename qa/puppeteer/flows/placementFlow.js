@@ -157,10 +157,29 @@ module.exports = async function placementFlow(page, context = {}) {
     assertions.push(mkAssert({ id: 'resumeInputPresent', label: 'Resume file input present', pass: !!uploadSel, selector: uploadSel, screenshot: shotUpload }));
     assertions.push(mkAssert({ id: 'resumeUploadAttempt', label: 'Resume file upload attempted', pass: uploadAttempted, selector: uploadSel, screenshot: shotUpload }));
     assertions.push(mkAssert({ id: 'resumeUploadAcknowledged', label: 'Resume upload acknowledged by UI', pass: uploadAcknowledged, selector: uploadSel, screenshot: shotUpload, text: uploadInfo }));
+
+    // If upload was attempted, try submitting the ACF form to persist (success or validation notice counts as process ack)
+    let formSubmitted = false;
+    let submitAck = '';
+    try {
+      const submitSel = '#acf-form button[type="submit"], #acf-form input[type="submit"]';
+      const btn = await page.$(submitSel);
+      if (btn) {
+        await btn.click().catch(()=>{});
+        // Wait for any ACF notice or general success/validation feedback
+        const ackSel = '.acf-notice, .acf-notice.-success, .bb-notice, .bb-feedback, .message-success, .updated';
+        await page.waitForTimeout(800);
+        const ack = await page.$(ackSel);
+        if (ack) {
+          formSubmitted = true;
+          submitAck = await page.$eval(ackSel, el => (el.innerText||'').trim()).catch(()=> '');
+        }
+      }
+    } catch(_) {}
     // Functional: filename persists after reload
     let filenamePersists = false;
     try {
-          if (uploadAcknowledged && uploadInfo) {
+      if ((uploadAcknowledged && uploadInfo) || formSubmitted) {
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(()=>{});
             const ackSelectors = ['.file-name', '.uploaded', '.acf-file-uploader .filename', '.acf-file-uploader .file-info', '[data-file-name]', '.acf-file-uploader a[href*="uploads"]'];
             await page.waitForTimeout(700);

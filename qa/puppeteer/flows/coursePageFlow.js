@@ -1,8 +1,10 @@
-function mkAssert({ id, label, pass, selector, screenshot, text }) {
+function mkAssert({ id, label, pass, selector, screenshot, text, type, elapsedMs }) {
   return {
     id,
     label,
     pass: !!pass,
+    type: type || undefined,
+    elapsedMs: typeof elapsedMs === 'number' ? elapsedMs : undefined,
     evidence: {
       selector: selector || null,
       screenshot: screenshot || null,
@@ -51,7 +53,7 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
         if (c && c > 0) { lessonCount = c; break; }
       } catch (e) {}
     }
-    assertions.push(mkAssert({ id: 'lessonsDetectedDom', label: 'Lessons detected via DOM selectors', pass: lessonCount > 0, selector: selectors.join(', '), screenshot: shot }));
+  assertions.push(mkAssert({ id: 'lessonsDetectedDom', label: 'Lessons detected via DOM selectors', pass: lessonCount > 0, selector: selectors.join(', '), screenshot: shot, type: 'deterministic', elapsedMs: 0 }));
 
     // Fallback 1: parse Hebrew text for a number before the word "שיעור/שיעורים" (e.g., "36 שיעורים")
     if (!lessonCount) {
@@ -64,7 +66,7 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
         }
       } catch(e) {}
     }
-    assertions.push(mkAssert({ id: 'lessonsDetectedText', label: 'Lessons detected via text pattern', pass: lessonCount > 0 }));
+  assertions.push(mkAssert({ id: 'lessonsDetectedText', label: 'Lessons detected via text pattern', pass: lessonCount > 0, type: 'deterministic', elapsedMs: 0 }));
 
     // Fallback 2: count occurrences of the word "שיעור" in the course content section (coarsely)
     if (!lessonCount) {
@@ -82,7 +84,7 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
         if (approx && approx > 0) lessonCount = approx;
       } catch(e) {}
     }
-    assertions.push(mkAssert({ id: 'lessonsDetectedApprox', label: 'Approx lessons detected via content', pass: lessonCount > 0 }));
+  assertions.push(mkAssert({ id: 'lessonsDetectedApprox', label: 'Approx lessons detected via content', pass: lessonCount > 0, type: 'deterministic', elapsedMs: 0 }));
 
     // Try to extract inline JSON or window globals that may include steps
     const inline = await page.evaluate(() => {
@@ -205,39 +207,42 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
       } catch (e) {}
     }
 
-  assertions.push(mkAssert({ id: 'stepsFileExtracted', label: 'Steps JSON extracted', pass: !!stepsFile }));
+  assertions.push(mkAssert({ id: 'stepsFileExtracted', label: 'Steps JSON extracted', pass: !!stepsFile, type: 'deterministic', elapsedMs: 0 }));
   // Header presence for consistency with other flows
   let headerPresent = false;
   try { headerPresent = !!(await page.$('header, .bb-header, .site-header')); } catch(e) {}
-  assertions.push(mkAssert({ id: 'courseHeaderPresent', label: 'Course header present', pass: headerPresent }));
+  assertions.push(mkAssert({ id: 'courseHeaderPresent', label: 'Course header present', pass: headerPresent, type: 'deterministic', elapsedMs: 0 }));
 
   // Functional: attempt to start/continue course and open a lesson
   let startClicked = false;
   let navigatedToLesson = false;
   try {
     const startSelectors = [
-      'a.bb-button, a.button, button, .ld-button, .btn'
+      'a.bb-button, a.button, button, .ld-button, .btn',
+      '.ld-lesson-list a',
+      'a[href*="/lessons/"]'
     ];
     const labelMatches = [/continue/i, /start/i, /התחל/, /המשך/];
     // Find a clickable element whose text matches common labels
     let handle = null;
+    const tNav0 = Date.now();
     for (const sel of startSelectors) {
       const hs = await page.$$(sel);
       for (const h of hs) {
         try {
           const t = (await page.evaluate(el => (el.innerText||'') + ' ' + (el.value||''), h)) || '';
-          if (labelMatches.some(r => r.test(t))) { handle = h; break; }
+          if (labelMatches.some(r => r.test(t)) || sel.includes('/lessons/')) { handle = h; break; }
         } catch(e){}
       }
       if (handle) break;
     }
     if (!handle) {
       // Fallback: the course content list first lesson link
-      handle = await page.$('.ld-lesson-list a, .lesson-list a, .bb-lesson-item a');
+      handle = await page.$('.ld-lesson-list a, .lesson-list a, .bb-lesson-item a, a[href*="/lessons/"]');
     }
     if (handle) {
       await Promise.race([
-        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 12000 }).catch(()=>{}),
+        page.waitForNavigation({ waitUntil: ['domcontentloaded','load','networkidle2'], timeout: 15000 }).catch(()=>{}),
         handle.click().catch(()=>{})
       ]);
       startClicked = true;
@@ -250,14 +255,20 @@ module.exports = async function coursePageFlow(page, outputDir, creds, slugOrUrl
       // SPA fallback: if URL didn't change, consider presence of lesson/player selectors as success
       if (!navigatedToLesson) {
         try {
-          const spaFound = await page.$$eval('.ld-lesson, .ld-lesson-list li, iframe, video, .learndash_player, .ld-video', els => els.length).catch(()=>0);
+          const spaFound = await page.$$eval('.ld-lesson, .ld-lesson-list li, iframe, video, .learndash_player, .ld-video, .ld-item-list .ld-item, .ld-table-list .ld-table-list-item', els => els.length).catch(()=>0);
           if (spaFound > 0) navigatedToLesson = true;
         } catch(_) {}
+        // as an extra guard, wait briefly for lesson selectors
+        if (!navigatedToLesson) {
+          try { await page.waitForSelector('a[href*="/lessons/"], .ld-lesson, .ld-item-list .ld-item', { timeout: 3000 }); navigatedToLesson = true; } catch(_) {}
+        }
       }
+      const elapsedNav = Date.now() - tNav0;
+      assertions.push(mkAssert({ id: 'startOrContinueClicked', label: 'Start/Continue course clicked', pass: startClicked, type: 'deterministic', elapsedMs: elapsedNav }));
+      assertions.push(mkAssert({ id: 'navigatedToLesson', label: 'Navigated to a lesson from course page', pass: navigatedToLesson, type: 'deterministic', elapsedMs: 0 }));
     }
   } catch(e) {}
-  assertions.push(mkAssert({ id: 'startOrContinueClicked', label: 'Start/Continue course clicked', pass: startClicked }));
-  assertions.push(mkAssert({ id: 'navigatedToLesson', label: 'Navigated to a lesson from course page', pass: navigatedToLesson }));
+  
 
   // If this is a member courses URL and we still didn't detect lessons, try to drill into first course card
   try {

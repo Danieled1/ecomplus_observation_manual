@@ -17,6 +17,7 @@ How to help (high-value, repo-specific tasks):
   - ACF/Custom CPT usage (grades, tickets, placement)
   - AJAX endpoints that return JSON for front-end components
 - When changing code, preserve existing WordPress conventions (use hooks, nonces for AJAX, and translation functions like `esc_html_e`/`esc_attr_e`).
+- For QA flow validation tasks: correlate failures in `coverage.json` with related DOM selectors or AJAX calls mentioned in `flow_logs/*.log`.
 
 Repository patterns and constraints (do not assume otherwise):
 
@@ -30,6 +31,24 @@ Examples to cite when offering edits or templates:
 - For readiness summaries, follow the table structure found in `STUDENT_EXP.md` and `01_experience_pass_template.md`.
 - When referencing code examples, point to `CONTEXT.txt` for BuddyBoss hooks and PHP snippets.
 
+
+QA automation context (Puppeteer / orchestration):
+
+- The repo also contains automated QA flows under `qa/puppeteer/`.
+- Key files: `orchestrator.js`, `coverage.json`, `results.json`, `flow_logs/`, and markdown summaries (`QA_COVERAGE_BASELINE.md`, `QA_WEAKSPOT_ANALYSIS.md`, `QA_REPORT_PHASE_8.md`).
+- When asked to analyze or summarize runs:
+  • Read both `coverage.json` and `results.json` (latest run folders under `qa/puppeteer/output/`).
+  • Correlate assertion pass/fail counts, timing (`elapsedMs`), and evidence links.
+  • Generate diagnostics only — **never modify test logic** unless explicitly requested.
+- When proposing patches, focus on minimal, low-risk adjustments:
+  • Add cache-buster headers, selector wideners, or small endpoint hooks (`find_ticket_by_title`) consistent with BuddyBoss/WordPress conventions.
+  • Do **not** add new frameworks or change Puppeteer architecture.
+- Phase structure reference:
+  • Phase 6 – Baseline run (logging + coverage)
+  • Phase 7 – Optimization & Roll-ups
+  • Phase 7B – Weak-Spot Diagnostics (analysis only)
+  • Phase 8 – Launch Metrics (final readiness report)
+
 When you cannot proceed:
 
 - If a task requires running the application, making DB changes, or network calls, stop and request specific reproduction steps or access.
@@ -39,6 +58,8 @@ Tone and output style:
 
 - Keep answers short, actionable and repo-focused. When suggesting code, provide a minimal patch and a one-line rationale.
 - If editing docs or summaries, prefer the existing templates and phrasing. Keep headings and table formats consistent with other files.
+- When summarizing automated QA data, prefer concise bullet lists and tables (flow | coverage % | timing | notes).
+
 
 explicit commit/branch rules –
 Branch naming: `qa/<scope>-<pass>` (e.g. qa/student-pass-v1)  

@@ -1,9 +1,11 @@
 // Helper for assertions with evidence
-function mkAssert({ id, label, pass, selector, screenshot, text }) {
+function mkAssert({ id, label, pass, selector, screenshot, text, type, elapsedMs }) {
   return {
     id,
     label,
     pass: !!pass,
+    type: type || undefined,
+    elapsedMs: typeof elapsedMs === 'number' ? elapsedMs : undefined,
     evidence: {
       selector: selector || null,
       screenshot: screenshot || null,
@@ -26,7 +28,7 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
 
   // Ensure lesson content or player exists
   const hasPlayer = await page.$('iframe, video, .learndash_player, .ld-video, .lesson-content');
-    assertions.push(mkAssert({ id: 'playerPresent', label: 'Lesson content/player present', pass: !!hasPlayer, selector: 'iframe, video, .learndash_player, .ld-video, .lesson-content', screenshot: shot }));
+    assertions.push(mkAssert({ id: 'playerPresent', label: 'Lesson content/player present', pass: !!hasPlayer, selector: 'iframe, video, .learndash_player, .ld-video, .lesson-content', screenshot: shot, type: 'deterministic', elapsedMs: 0 }));
     if (!hasPlayer) {
       return { ok: false, error: 'lesson player/content missing', meta: { url, assertions }, screenshots };
     }
@@ -35,6 +37,7 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
   let playbackStarted = false;
   let playbackInfo = '';
   let usedSelector = null;
+  const tPlay0 = Date.now();
   try {
     // Direct <video>
     const vidHandle = await page.$('video');
@@ -81,10 +84,11 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
   const shotAfter = `${outputDir}/lesson_${safeName}_after_play.png`;
   await page.screenshot({ path: shotAfter }).catch(()=>{});
   screenshots.push(shotAfter);
-  assertions.push(mkAssert({ id: 'videoPlayback', label: 'Lesson video playback started', pass: playbackStarted, selector: usedSelector, screenshot: shotAfter, text: playbackInfo }));
+  assertions.push(mkAssert({ id: 'videoPlayback', label: 'Lesson video playback started', pass: playbackStarted, selector: usedSelector, screenshot: shotAfter, text: playbackInfo, type: 'deterministic', elapsedMs: Date.now() - tPlay0 }));
 
   // Functional: resume saved (best-effort for native <video> or LearnDash/Vimeo storage)
   let resumeSaved = false;
+  const tResume0 = Date.now();
   try {
     const vid = await page.$('video');
     if (vid && playbackStarted) {
@@ -115,10 +119,11 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
       resumeSaved = !!verify;
     }
   } catch(e) {}
-  assertions.push(mkAssert({ id: 'resumeSaved', label: 'Resume point saved after reload (native video)', pass: resumeSaved }));
+  assertions.push(mkAssert({ id: 'resumeSaved', label: 'Resume point saved after reload (native video)', pass: resumeSaved, type: 'stateful', elapsedMs: Date.now() - tResume0 }));
 
   // Functional: Mark as completed gating (should not complete prematurely)
   let gatingWorks = false;
+  const tGate0 = Date.now();
   try {
     const btnSel = 'button.ld-button, .ld-button, input[type="submit"].ld-button, .ld-mark-complete, button[name*="complete"], input[name*="complete"]';
     const btn = await page.$(btnSel);
@@ -139,7 +144,7 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
       }
     }
   } catch(e) {}
-  assertions.push(mkAssert({ id: 'markCompleteGated', label: 'Mark Complete gated before full playback', pass: gatingWorks }));
+  assertions.push(mkAssert({ id: 'markCompleteGated', label: 'Mark Complete gated before full playback', pass: gatingWorks, type: 'deterministic', elapsedMs: Date.now() - tGate0 }));
 
   // Persistence: If completion indicator is present or we can click a completion control successfully,
   // verify the completion status persists after a fresh login and reload of the lesson page.
@@ -166,6 +171,7 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
   } catch(_) {}
 
   let completionPersists = false;
+  const tPersist0 = Date.now();
   try {
     if (completionIndicator) {
       const base = (creds.url || '').replace(/\/+$/, '');
@@ -199,7 +205,7 @@ module.exports = async function lessonPageFlow(page, outputDir, creds, slugOrUrl
       }
     }
   } catch(_) {}
-  assertions.push(mkAssert({ id: 'completionPersistsAfterRelogin', label: 'Lesson completion persists after re-login', pass: completionPersists }));
+  assertions.push(mkAssert({ id: 'completionPersistsAfterRelogin', label: 'Lesson completion persists after re-login', pass: completionPersists, type: 'stateful', elapsedMs: Date.now() - tPersist0 }));
 
   // Provide a simple 'counts' signal via header presence (satisfies coverage metric)
   let headerPresent = false;

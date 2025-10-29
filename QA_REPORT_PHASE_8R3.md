@@ -14,7 +14,7 @@ Scope: Client-side Puppeteer flow only (no PHP changes in-repo).
   - Wait for admin-ajax acf_form_submit response (POST): url includes 'admin-ajax.php' and 'acf_form_submit' (timeout 15s)
   - Then wait for a success notice: '.acf-notice.updated, .bb-feedback.success, .notice-success, .bp-feedback.success' (timeout 15s)
 - Assertions remain unchanged (no IDs, labels, or pass criteria modified).
- - 8R3b: Added an alternate success path — wait for a new ticket row containing the submitted title; this acts as deterministic confirmation when notices are absent.
+- 8R3b: Added an alternate success path — wait for a new ticket row containing the submitted title; this acts as deterministic confirmation when notices are absent.
 
 ## Logging
 

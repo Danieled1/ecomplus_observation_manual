@@ -299,6 +299,7 @@
             meta.description || "הצגת צילומי מסך סטאטיים לצפייה.";
           const label = LABELS[meta.stepId] || meta.stepId || "שלב";
           stepEl.textContent = `שלב: ${label}`;
+          // Present step index as N / total; metadata optional and non-blocking
           indexEl.textContent = `${current + 1} / ${images.length}`;
           if (meta && meta.url) {
             urlEl.textContent = meta.url;

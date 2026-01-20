@@ -1,0 +1,174 @@
+[
+  {
+    "id": "login",
+    "title": "Login Page",
+    "purpose": "This page lets you access your learning hub by signing in and being redirected to your profile based on your role.",
+    "key_actions": [
+      "Guests who attempt to access any private page are redirected here.",
+      "Upon successful login, users are redirected according to their role.",
+      "Note the landing page after successful login (student profile URL pattern).",
+      "Hebrew-localized error messages for wrong/empty credentials.",
+      "Attempt invalid credentials to observe the Hebrew error message.",
+      "Then continue from My Profile to your courses."
+    ],
+    "tip": "Implement auth recovery & password visibility.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/login_body.png",
+    "source": "student/login.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "profile",
+    "title": "My Profile",
+    "purpose": "This page lets you see and manage your info and progress by organizing profile details, group tabs, and certificates in one hub.",
+    "key_actions": [
+      "\"Edit\" button visible only to the profile owner.",
+      "Dynamic sub-tabs for each LearnDash group the user belongs to.",
+      "Progress and last-activity indicators are rendered.",
+      "Switch between group sub-tabs to view course lists and certificates.",
+      "Tap Edit to update profile fields and return to the overview.",
+      "Then go to Courses to explore what to learn next."
+    ],
+    "tip": "Unified student experience with RTL support and consistent theming.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/profile_body.png",
+    "source": "student/profile.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "courses",
+    "title": "Courses Page",
+    "purpose": "This page lets you find what to learn next by browsing your enrolled courses via group tabs, statuses, and progress.",
+    "key_actions": [
+      "Dynamic group tabs/chips (LearnDash groups → tabs).",
+      "Grid/List toggle functional.",
+      "Status ribbons with progress %, last activity, and access states.",
+      "Interpret the status ribbon on a card (Start/In‑progress/Completed).",
+      "Open a course card from the relevant group tab to continue.",
+      "Then move to the course page to start or resume."
+    ],
+    "tip": "Add empty‑state components and unified visual polish across pages.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/courses-list_body.png",
+    "source": "student/courses.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "course_detail",
+    "title": "Course (Single View)",
+    "purpose": "This page lets you resume and plan a course by showing progress, actions, and contents in one place.",
+    "key_actions": [
+      "Primary action button (Start/Continue/Completed) with resume link.",
+      "Preview video modal (oEmbed or MP4 fallback).",
+      "View progress infobar (percentage + last activity).",
+      "Check the counts (lessons/topics/quizzes) and certificate indicator.",
+      "Use the primary button to resume exactly where you left off.",
+      "Then open the next lesson from the contents list."
+    ],
+    "tip": "Focus: Stability, RTL usability, and connected backend logic.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/course-0_body.png",
+    "source": "student/course.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "lesson",
+    "title": "Lesson Page",
+    "purpose": "This page lets you learn and advance toward completion by viewing lesson content, updating status, and moving to the next step.",
+    "key_actions": [
+      "Assignments, topics, and quizzes lists (when present).",
+      "Mark the lesson complete to unlock the next step.",
+      "Use the Next button to continue; if blocked, read the gating notice.",
+      "Previous/Next navigation with gating rules.",
+      "Sidebar checklist with current lesson highlighted.",
+      "Then after several lessons, review Grades to check your progress."
+    ],
+    "tip": "Accessibility + performance audits.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/lesson-%d7%a9%d7%99%d7%a2%d7%95%d7%a8-2-3_body.png",
+    "source": "student/lesson.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "grades",
+    "title": "Grades",
+    "purpose": "This page lets you understand your performance by listing evaluated items with status and totals in one table.",
+    "key_actions": [
+      "Live table populated client‑side via fetch_client_grades (AJAX).",
+      "Completed counter (e.g., 5/6).",
+      "Placement status chip and responsive table labels.",
+      "Review each row’s status and deadline; look for completed vs. pending.",
+      "Check the completed counter and confirm it matches visible rows.",
+      "Then revisit low‑score lessons or open Tickets if something looks wrong."
+    ],
+    "tip": "Add empty‑state components and unified visual polish across pages.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/grades_body.png",
+    "source": "student/grades.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "tickets",
+    "title": "Tickets (פניות ואישורים)",
+    "purpose": "This page lets you get help and approvals by submitting a ticket and tracking status and feedback in one place.",
+    "key_actions": [
+      "Create a ticket via ACF front‑end form (sector, sub‑subject, title, content).",
+      "View ticket history table (status, last modified, feedback).",
+      "Open content modal for message, attachments, and links.",
+      "Submit a new ticket with sector and sub‑subject; confirm it appears in the history.",
+      "Open the message modal to review content and attachments.",
+      "Then return to your lessons while awaiting feedback."
+    ],
+    "tip": "Add empty‑state components and unified visual polish across pages.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/tickets_after_submit.png",
+    "source": "student/tickets.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "placement",
+    "title": "Placement",
+    "purpose": "This page lets you move your job search forward by uploading your resume, checking status/notes, and accessing prep courses.",
+    "key_actions": [
+      "Upload resume via ACF front‑end form (user meta).",
+      "View status widgets and placement notes.",
+      "Browse related LearnDash job‑prep courses.",
+      "Upload or replace your resume file and confirm the “last updated” note.",
+      "Review current status and notes; open a related job‑prep course.",
+      "Then take a suggested job‑prep course next."
+    ],
+    "tip": "Unified student experience with RTL support and consistent theming.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/placement_upload.png",
+    "source": "student/placement.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "reviews",
+    "title": "Reviews",
+    "purpose": "This page lets you share feedback that improves the experience by submitting a simple one‑off review.",
+    "key_actions": [
+      "Submit a POST form that sanitizes inputs and sends an email via wp_mail().",
+      "Redirect to user profile after successful send.",
+      "Use minimal fields (name, satisfaction, free-text).",
+      "Select satisfaction level and submit feedback; observe redirect to profile.",
+      "Use the free‑text field to add specifics that help staff improve.",
+      "Then return to your profile or course to continue."
+    ],
+    "tip": "Full Reviews backend (CPT + moderation).",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/reviews.png",
+    "source": "student/reviews.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "support",
+    "title": "Technical Support Page",
+    "purpose": "This page lets you quickly get technical help by opening the external support form with clear guidance.",
+    "key_actions": [
+      "Read guidance on how to request help.",
+      "Activate the \"Technical Support Form\" button (opens in a new tab).",
+      "Open the external support form in a new tab.",
+      "If forms are blocked, use the fallback contact method provided (mailto or help address).",
+      "Then return to your previous page to resume learning."
+    ],
+    "tip": "Replace Google Form dependencies with internal ACF forms.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/support_body.png",
+    "source": "student/support.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "logout",
+    "title": "Logout",
+    "purpose": "This page lets you end your session safely by logging out and returning to the login page.",
+    "key_actions": [
+      "Logout from header to end session.",
+      "Click Logout in the header and confirm you return to /custom-login/.",
+      "Attempt to open a private page to verify the session is terminated."
+    ],
+    "tip": "Unified student experience with RTL support and consistent theming.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/logout_after.png",
+    "source": "student/login.md; STUDENT_EXP.md"
+  }
+]

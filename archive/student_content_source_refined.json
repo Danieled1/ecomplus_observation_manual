@@ -1,0 +1,167 @@
+[
+  {
+    "id": "login",
+    "title": "Login Page",
+    "purpose": "This page helps you access your learning hub by signing in and landing on your profile.",
+    "key_actions": [
+      "Confirm you’re on the login page (redirected from private pages).",
+      "Sign in and confirm you land on your profile.",
+      "Review the Hebrew error text if credentials are wrong.",
+      "After this, you can open Courses from your Profile."
+    ],
+    "tip": "Pro tip: Use password visibility if available.",
+    "advanced_tip": "Note your profile URL pattern for quick access.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/login_body.png",
+    "source": "student/login.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "profile",
+    "title": "My Profile",
+    "purpose": "This page helps you manage your info and track progress in one place.",
+    "key_actions": [
+      "Switch group tabs to view your courses.",
+      "Check progress and last activity for each area.",
+      "Edit your details if needed (owner only).",
+      "After this, you can open Courses to choose what’s next."
+    ],
+    "tip": "Pro tip: Tabs reflect your LearnDash groups.",
+    "advanced_tip": "Certificates may appear in a dedicated tab.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/profile_body.png",
+    "source": "student/profile.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "courses",
+    "title": "Courses Page",
+    "purpose": "This page helps you decide what to learn next by browsing enrolled courses.",
+    "key_actions": [
+      "Browse courses by group tabs.",
+      "View status ribbons: Start, In‑progress, or Completed.",
+      "Open a course card to continue.",
+      "After this, you can resume from the Course page."
+    ],
+    "tip": "Pro tip: Switch grid/list to scan faster.",
+    "advanced_tip": "Prioritize ‘In‑progress’ to maintain momentum.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/courses-list_body.png",
+    "source": "student/courses.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "course_detail",
+    "title": "Course (Single View)",
+    "purpose": "This page helps you resume learning and preview what remains in the course.",
+    "key_actions": [
+      "Use Start/Continue to jump back in.",
+      "Check progress, last activity, and counts.",
+      "Review certificate availability if shown.",
+      "After this, you can open the next lesson from Contents."
+    ],
+    "tip": "Pro tip: Preview video is optional.",
+    "advanced_tip": "Counts help estimate time for your next session.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/course-0_body.png",
+    "source": "student/course.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "lesson",
+    "title": "Lesson Page",
+    "purpose": "This page helps you learn the material and move forward step by step.",
+    "key_actions": [
+      "Review lesson content and related topics or quizzes.",
+      "Mark complete to unlock the next step.",
+      "Use Next; read the gating notice if blocked.",
+      "After this, you can check Grades to see your progress."
+    ],
+    "tip": "Pro tip: Use the sidebar checklist to stay oriented.",
+    "advanced_tip": "Previous/Next follows your course order.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/lesson-%d7%a9%d7%99%d7%a2%d7%95%d7%a8-2-3_body.png",
+    "source": "student/lesson.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "grades",
+    "title": "Grades",
+    "purpose": "This page helps you understand performance across all evaluated items.",
+    "key_actions": [
+      "Scan the table for items and statuses.",
+      "Check the completed counter.",
+      "Review deadlines or pending items.",
+      "After this, revisit low‑score lessons or open Tickets if needed."
+    ],
+    "tip": "Pro tip: Table labels adapt well on mobile.",
+    "advanced_tip": "Refresh if you recently completed a lesson.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/grades_body.png",
+    "source": "student/grades.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "tickets",
+    "title": "Tickets (פניות ואישורים)",
+    "purpose": "This page helps you request help and track responses in one place.",
+    "key_actions": [
+      "Create a ticket with sector, subject, title, and details.",
+      "Check your ticket history and status.",
+      "Open the details modal for content and attachments.",
+      "After this, return to lessons while you wait for updates."
+    ],
+    "tip": "Pro tip: Clear titles get faster responses.",
+    "advanced_tip": "Keep attachments small for smoother uploads.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/tickets_after_submit.png",
+    "source": "student/tickets.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "placement",
+    "title": "Placement",
+    "purpose": "This page helps you move your job search forward with resume updates and status notes.",
+    "key_actions": [
+      "Upload or update your resume.",
+      "Check placement status and notes.",
+      "Explore related job‑prep courses.",
+      "After this, take a suggested prep course."
+    ],
+    "tip": "Pro tip: Keep your resume current.",
+    "advanced_tip": "Note the ‘last updated’ date after upload.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/placement_upload.png",
+    "source": "student/placement.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "reviews",
+    "title": "Reviews",
+    "purpose": "This page helps you share quick feedback to improve your experience.",
+    "key_actions": [
+      "Pick a satisfaction level and add comments.",
+      "Submit to send your feedback.",
+      "You’ll return to your profile after sending.",
+      "After this, continue learning or browse courses."
+    ],
+    "tip": "Pro tip: Be specific—short notes help most.",
+    "advanced_tip": "Keep examples concise for faster triage.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/reviews.png",
+    "source": "student/reviews.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "support",
+    "title": "Technical Support Page",
+    "purpose": "This page helps you get technical help quickly via the external form.",
+    "key_actions": [
+      "Read the guidance on what to include.",
+      "Open the support form (new tab).",
+      "Use the fallback contact if the form is blocked.",
+      "After this, return to your page and resume learning."
+    ],
+    "tip": "Pro tip: Include your email for faster replies.",
+    "advanced_tip": "Keep the tab open until you submit.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/support_body.png",
+    "source": "student/support.md; STUDENT_EXP.md"
+  },
+  {
+    "id": "logout",
+    "title": "Logout",
+    "purpose": "This page helps you end your session safely and return to login.",
+    "key_actions": [
+      "Click Logout in the header.",
+      "Confirm you return to the login page.",
+      "Try a private page to confirm you’re logged out.",
+      "After this, sign back in when you’re ready."
+    ],
+    "tip": "Pro tip: Always log out on shared devices.",
+    "advanced_tip": "Check re-login takes you back to your profile.",
+    "image": "/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/logout_after.png",
+    "source": "student/login.md; STUDENT_EXP.md"
+  }
+]

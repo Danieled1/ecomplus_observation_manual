@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Experience Tutorial (Box 1.5b)</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;margin:0;color:#111;background:#fff}
+    .container{max-width:880px;margin-inline:auto;padding:24px}
+    h1,h2{line-height:1.3}
+    h1{font-size:1.8rem;margin:0 0 16px}
+    h2{font-size:1.3rem;margin:24px 0 8px}
+    p{margin:0 0 12px}
+    ol{padding-inline-start:22px}
+    figure{margin:12px 0}
+    img{max-width:100%;height:auto;border-radius:6px}
+    .tip{background:#f6f3ff;border:1px solid #e4ddff;padding:10px 12px;border-radius:8px;margin:10px 0;color:#3c2a7e}
+    .sep{border:0;border-top:1px solid #eee;margin:24px 0}
+    .transition{color:#444;font-style:italic;margin:6px 0 0}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Student Experience Tutorial (Box 1.5b)</h1>
+    <p>Primary student flows from first login to logout.</p>
+
+    <section id="login">
+      <h2>1. Login Page</h2>
+      <p><strong>Purpose:</strong> This page lets you access your learning hub by signing in and being redirected to your profile based on your role.</p>
+      <ol>
+        <li>Guests who attempt to access any private page are redirected here.</li>
+        <li>Upon successful login, users are redirected according to their role.</li>
+        <li>Note the landing page after successful login (student profile URL pattern).</li>
+        <li>Hebrew-localized error messages for wrong/empty credentials.</li>
+        <li>Attempt invalid credentials to observe the Hebrew error message.</li>
+        <li>Then continue from My Profile to your courses.</li>
+      </ol>
+      <div class="tip">Tip: Implement auth recovery &amp; password visibility.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/login_body.png" alt="Login screenshot"></figure>
+      <p class="transition">Transition: Next you arrive at your Profile hub.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="profile">
+      <h2>2. My Profile</h2>
+      <p><strong>Purpose:</strong> This page lets you see and manage your info and progress by organizing profile details, group tabs, and certificates in one hub.</p>
+      <ol>
+        <li>"Edit" button visible only to the profile owner.</li>
+        <li>Dynamic sub-tabs for each LearnDash group the user belongs to.</li>
+        <li>Progress and last-activity indicators are rendered.</li>
+        <li>Switch between group sub-tabs to view course lists and certificates.</li>
+        <li>Tap Edit to update profile fields and return to the overview.</li>
+        <li>Then go to Courses to explore what to learn next.</li>
+      </ol>
+      <div class="tip">Tip: Unified student experience with RTL support and consistent theming.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/profile_body.png" alt="Profile screenshot"></figure>
+      <p class="transition">Transition: Move into Courses to choose what to learn now.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="courses">
+      <h2>3. Courses Page</h2>
+      <p><strong>Purpose:</strong> This page lets you find what to learn next by browsing your enrolled courses via group tabs, statuses, and progress.</p>
+      <ol>
+        <li>Dynamic group tabs/chips (LearnDash groups → tabs).</li>
+        <li>Grid/List toggle functional.</li>
+        <li>Status ribbons with progress %, last activity, and access states.</li>
+        <li>Interpret the status ribbon on a card (Start/In‑progress/Completed).</li>
+        <li>Open a course card from the relevant group tab to continue.</li>
+        <li>Then move to the course page to start or resume.</li>
+      </ol>
+      <div class="tip">Tip: Add empty‑state components and unified visual polish across pages.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/courses-list_body.png" alt="Courses screenshot"></figure>
+      <p class="transition">Transition: Drill into a Course to resume structured progress.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="course_detail">
+      <h2>4. Course (Single View)</h2>
+      <p><strong>Purpose:</strong> This page lets you resume and plan a course by showing progress, actions, and contents in one place.</p>
+      <ol>
+        <li>Primary action button (Start/Continue/Completed) with resume link.</li>
+        <li>Preview video modal (oEmbed or MP4 fallback).</li>
+        <li>View progress infobar (percentage + last activity).</li>
+        <li>Check the counts (lessons/topics/quizzes) and certificate indicator.</li>
+        <li>Use the primary button to resume exactly where you left off.</li>
+        <li>Then open the next lesson from the contents list.</li>
+      </ol>
+      <div class="tip">Tip: Focus: Stability, RTL usability, and connected backend logic.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/course-0_body.png" alt="Course screenshot"></figure>
+      <p class="transition">Transition: Enter a Lesson to keep advancing.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="lesson">
+      <h2>5. Lesson Page</h2>
+      <p><strong>Purpose:</strong> This page lets you learn and advance toward completion by viewing lesson content, updating status, and moving to the next step.</p>
+      <ol>
+        <li>Assignments, topics, and quizzes lists (when present).</li>
+        <li>Mark the lesson complete to unlock the next step.</li>
+        <li>Use the Next button to continue; if blocked, read the gating notice.</li>
+        <li>Previous/Next navigation with gating rules.</li>
+        <li>Sidebar checklist with current lesson highlighted.</li>
+        <li>Then after several lessons, review Grades to check your progress.</li>
+      </ol>
+      <div class="tip">Tip: Accessibility + performance audits.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/lesson-%D7%A9%D7%99%D7%A2%D7%95%D7%A8-2-3_body.png" alt="Lesson screenshot"></figure>
+      <p class="transition">Transition: Review Grades to gauge performance.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="grades">
+      <h2>6. Grades</h2>
+      <p><strong>Purpose:</strong> This page lets you understand your performance by listing evaluated items with status and totals in one table.</p>
+      <ol>
+        <li>Live table populated client‑side via fetch_client_grades (AJAX).</li>
+        <li>Completed counter (e.g., 5/6).</li>
+        <li>Placement status chip and responsive table labels.</li>
+        <li>Review each row’s status and deadline; look for completed vs. pending.</li>
+        <li>Check the completed counter and confirm it matches visible rows.</li>
+        <li>Then revisit low‑score lessons or open Tickets if something looks wrong.</li>
+      </ol>
+      <div class="tip">Tip: Add empty‑state components and unified visual polish across pages.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/grades_body.png" alt="Grades screenshot"></figure>
+      <p class="transition">Transition: Open Tickets if you need help or clarification.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="tickets">
+      <h2>7. Tickets (פניות ואישורים)</h2>
+      <p><strong>Purpose:</strong> This page lets you get help and approvals by submitting a ticket and tracking status and feedback in one place.</p>
+      <ol>
+        <li>Create a ticket via ACF front‑end form (sector, sub‑subject, title, content).</li>
+        <li>View ticket history table (status, last modified, feedback).</li>
+        <li>Open content modal for message, attachments, and links.</li>
+        <li>Submit a new ticket with sector and sub‑subject; confirm it appears in the history.</li>
+        <li>Open the message modal to review content and attachments.</li>
+        <li>Then return to your lessons while awaiting feedback.</li>
+      </ol>
+      <div class="tip">Tip: Add empty‑state components and unified visual polish across pages.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/tickets_after_submit.png" alt="Tickets screenshot"></figure>
+      <p class="transition">Transition: Visit Placement to progress your career journey.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="placement">
+      <h2>8. Placement</h2>
+      <p><strong>Purpose:</strong> This page lets you move your job search forward by uploading your resume, checking status/notes, and accessing prep courses.</p>
+      <ol>
+        <li>Upload resume via ACF front‑end form (user meta).</li>
+        <li>View status widgets and placement notes.</li>
+        <li>Browse related LearnDash job‑prep courses.</li>
+        <li>Upload or replace your resume file and confirm the “last updated” note.</li>
+        <li>Review current status and notes; open a related job‑prep course.</li>
+        <li>Then take a suggested job‑prep course next.</li>
+      </ol>
+      <div class="tip">Tip: Unified student experience with RTL support and consistent theming.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/placement_upload.png" alt="Placement screenshot"></figure>
+      <p class="transition">Transition: Share quick feedback through Reviews if desired.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="reviews">
+      <h2>9. Reviews</h2>
+      <p><strong>Purpose:</strong> This page lets you share feedback that improves the experience by submitting a simple one‑off review.</p>
+      <ol>
+        <li>Submit a POST form that sanitizes inputs and sends an email via wp_mail().</li>
+        <li>Redirect to user profile after successful send.</li>
+        <li>Use minimal fields (name, satisfaction, free-text).</li>
+        <li>Select satisfaction level and submit feedback; observe redirect to profile.</li>
+        <li>Use the free‑text field to add specifics that help staff improve.</li>
+        <li>Then return to your profile or course to continue.</li>
+      </ol>
+      <div class="tip">Tip: Full Reviews backend (CPT + moderation).</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/reviews.png" alt="Reviews screenshot"></figure>
+      <p class="transition">Transition: Need technical help? Visit Support.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="support">
+      <h2>10. Technical Support Page</h2>
+      <p><strong>Purpose:</strong> This page lets you quickly get technical help by opening the external support form with clear guidance.</p>
+      <ol>
+        <li>Read guidance on how to request help.</li>
+        <li>Activate the "Technical Support Form" button (opens in a new tab).</li>
+        <li>Open the external support form in a new tab.</li>
+        <li>If forms are blocked, use the fallback contact method provided (mailto or help address).</li>
+        <li>Then return to your previous page to resume learning.</li>
+      </ol>
+      <div class="tip">Tip: Replace Google Form dependencies with internal ACF forms.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/support_body.png" alt="Support screenshot"></figure>
+      <p class="transition">Transition: When finished, log out safely.</p>
+    </section>
+    <hr class="sep" />
+
+    <section id="logout">
+      <h2>11. Logout</h2>
+      <p><strong>Purpose:</strong> This page lets you end your session safely by logging out and returning to the login page.</p>
+      <ol>
+        <li>Logout from header to end session.</li>
+        <li>Click Logout in the header and confirm you return to /custom-login/.</li>
+        <li>Attempt to open a private page to verify the session is terminated.</li>
+      </ol>
+      <div class="tip">Tip: Unified student experience with RTL support and consistent theming.</div>
+      <figure><img src="/qa/puppeteer/output/run-2025-10-29T13-37-12-867Z/logout_after.png" alt="Logout screenshot"></figure>
+    </section>
+
+    <p><strong>Tutorial generation complete — ready for publishing or visual export.</strong></p>
+  </main>
+</body>
+</html>

@@ -83,6 +83,27 @@ qa/evidence/run.har
 !qa/flow_mapping.md
 
 # -----------------------------
+# 🧹 Local overrides for hygiene (ignore untracked residues)
+# -----------------------------
+qa/puppeteer/.env
+
+# Stray/generated screenshots in qa/puppeteer root and player cache
+qa/puppeteer/*.png
+qa/puppeteer/player/screenshots/
+qa/puppeteer/player/screenshots/**
+
+# Dev server / local player variants (not part of the frozen deliverable)
+qa/puppeteer/run-showcase.js
+qa/puppeteer/showcaseRun.js
+qa/puppeteer/player/index.html
+qa/puppeteer/player/styles.css
+
+# Workspace artifacts
+TreeOutput.txt
+capsule/**
+archive/tutorial_workspace/**
+teacher/**
+# -----------------------------
 # 🧑‍🏫 Content Folders (Docs/Manual)
 # -----------------------------
 # Keep everything under student/, teacher/, staff/

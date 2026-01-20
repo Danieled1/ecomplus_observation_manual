@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>תצוגת מערכת תלמידים — קובץ יחיד</title>
+    <style>
+      /* RESET & NEW TV DESIGN (inline) */
+      * {
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #101216; /* deep neutral */
+        --screen: #0b0d11; /* near-black */
+        --bezel: #151820; /* slate bezel */
+        --text: #e0e2e6; /* soft light gray */
+        --muted: #b5bac2; /* muted */
+        --accent: #5b7c9a; /* cool steel blue */
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+      }
+      .app {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .app-header h1 {
+        font-size: 28px;
+        margin: 0 0 0 12px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        opacity: 0.85;
+        transition: opacity 300ms ease;
+      }
+      .controls button {
+        background: transparent;
+        border: 1px solid #2a313a;
+        color: var(--muted);
+        padding: 8px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .controls button:hover {
+        color: var(--text);
+        border-color: #3a4350;
+      }
+      .controls .loop {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .controls .loop input {
+        transform: scale(1.15);
+      }
+      .controls.idle {
+        opacity: 0.35;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+      .screen {
+        background: var(--screen);
+        border-radius: 18px;
+        padding: 14px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      }
+      .bezel {
+        background: var(--bezel);
+        border-radius: 14px;
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 16/9;
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        opacity: 0;
+        transform: translateX(2.5%) scale(0.985);
+        transition: opacity 700ms ease,
+          transform 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
+      }
+      .frame.show {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+      .frame.hide {
+        opacity: 0;
+        transform: translateX(-2.5%) scale(0.985);
+      }
+      .meta {
+        padding: 10px;
+      }
+      .meta-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        align-items: center;
+      }
+      .meta-item {
+        font-size: 18px;
+        line-height: 1.7;
+        color: var(--text);
+      }
+      .meta-item strong {
+        color: var(--muted);
+        font-weight: 600;
+        margin-left: 6px;
+      }
+      .empty {
+        margin-top: 10px;
+        padding: 14px;
+        border-radius: 12px;
+        background: #1c2028;
+        color: #dfe3ea;
+        font-size: 18px;
+      }
+      .app-footer {
+        margin-top: 10px;
+        opacity: 0.72;
+        font-size: 15px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <h1>תצוגת מערכת תלמידים — קובץ יחיד</h1>
+        <div class="controls" id="controls">
+          <button id="btn-prev" aria-label="הקודם">⏮ הקודם</button>
+          <button id="btn-toggle" aria-label="עצירה">⏸ עצירה</button>
+          <button id="btn-next" aria-label="הבא">⏭ הבא</button>
+          <label class="loop">
+            <input type="checkbox" id="chk-loop" checked />
+            <span>🔁 הצגה מחזורית</span>
+          </label>
+        </div>
+      </header>
+      <main>
+        <div class="screen">
+          <div class="bezel">
+            <img id="frameA" class="frame" alt="תצוגה" />
+            <img id="frameB" class="frame" alt="תצוגה" />
+          </div>
+        </div>
+        <div class="meta">
+          <div id="meta-box" class="meta-row">
+            <div class="meta-item">
+              <strong>כותרת:</strong> <span id="meta-title">—</span>
+            </div>
+            <div class="meta-item">
+              <strong>תיאור:</strong> <span id="meta-desc">—</span>
+            </div>
+            <div class="meta-item">
+              <strong>אזור:</strong> <span id="meta-ctx">—</span>
+            </div>
+            <div class="meta-item">
+              <strong>צעד:</strong> <span id="meta-index">—</span>
+            </div>
+            <div class="meta-item">
+              <strong>קישור:</strong>
+              <a id="meta-url" href="#" target="_blank">—</a>
+            </div>
+          </div>
+          <div id="empty" class="empty" hidden>
+            לא קיימת תצוגה זמינה כרגע. ודא שקבצי התמונות נמצאים בתיקיית
+            screenshots לצד קובץ זה.
+          </div>
+        </div>
+      </main>
+      <footer class="app-footer">
+        <small>תצוגה ויזואלית לצורכי סקירה – ללא ביצוע פעולות מערכת</small>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        const frameA = document.getElementById("frameA");
+        const frameB = document.getElementById("frameB");
+        const titleEl = document.getElementById("meta-title");
+        const descEl = document.getElementById("meta-desc");
+        const stepEl = document.getElementById("meta-ctx");
+        const emptyEl = document.getElementById("empty");
+        const indexEl = document.getElementById("meta-index");
+        const urlEl = document.getElementById("meta-url");
+        const btnPrev = document.getElementById("btn-prev");
+        const btnNext = document.getElementById("btn-next");
+        const btnToggle = document.getElementById("btn-toggle");
+        const loopInput = document.getElementById("chk-loop");
+        const controlsEl = document.querySelector(".controls");
+
+        const BASE = "./screenshots";
+        let images = [
+          {
+            src: `${BASE}/01_login.png`,
+            meta: { title: "כניסה", stepId: "01_login" },
+          },
+          {
+            src: `${BASE}/02_profile.png`,
+            meta: { title: "פרופיל", stepId: "02_profile" },
+          },
+          {
+            src: `${BASE}/02_profile_slider.png`,
+            meta: { title: "פרופיל — סליידר", stepId: "02_profile_slider" },
+          },
+          {
+            src: `${BASE}/03_courses.png`,
+            meta: { title: "קורסים", stepId: "03_courses" },
+          },
+          {
+            src: `${BASE}/04_course_detail.png`,
+            meta: { title: "פרטי קורס", stepId: "04_course_detail" },
+          },
+          {
+            src: `${BASE}/05_lesson.png`,
+            meta: { title: "שיעור", stepId: "05_lesson" },
+          },
+          {
+            src: `${BASE}/06_grades.png`,
+            meta: { title: "ציונים", stepId: "06_grades" },
+          },
+          {
+            src: `${BASE}/07_tickets_history.png`,
+            meta: { title: "כרטיסים", stepId: "07_tickets_history" },
+          },
+          {
+            src: `${BASE}/08_placement.png`,
+            meta: { title: "שיבוץ", stepId: "08_placement" },
+          },
+          {
+            src: `${BASE}/09_reviews.png`,
+            meta: { title: "ביקורות", stepId: "09_reviews" },
+          },
+          {
+            src: `${BASE}/10_support.png`,
+            meta: { title: "תמיכה", stepId: "10_support" },
+          },
+          {
+            src: `${BASE}/11_logged_out.png`,
+            meta: { title: "יציאה", stepId: "11_logged_out" },
+          },
+        ];
+
+        let current = 0;
+        let playing = true;
+        let timer = null;
+        let activeA = true;
+
+        const LABELS = {
+          "01_login": "כניסה",
+          "02_profile": "פרופיל",
+          "02_profile_slider": "פרופיל — סליידר",
+          "03_courses": "קורסים",
+          "04_course_detail": "פרטי קורס",
+          "05_lesson": "שיעור",
+          "06_grades": "ציונים",
+          "07_tickets_history": "כרטיסים",
+          "08_placement": "שיבוץ",
+          "09_reviews": "ביקורות",
+          "10_support": "תמיכה",
+          "11_logged_out": "יציאה",
+        };
+
+        function setIdleControls(idle) {
+          controlsEl.classList.toggle("idle", idle);
+        }
+        function updateMeta(meta) {
+          titleEl.textContent = meta.title || "לכידה אחרונה";
+          descEl.textContent =
+            meta.description || "הצגת צילומי מסך סטאטיים לצפייה.";
+          const label = LABELS[meta.stepId] || meta.stepId || "שלב";
+          stepEl.textContent = `שלב: ${label}`;
+          indexEl.textContent = `${current + 1} / ${images.length}`;
+          if (meta && meta.url) {
+            urlEl.textContent = meta.url;
+            urlEl.href = meta.url;
+          } else {
+            urlEl.textContent = "—";
+            urlEl.removeAttribute("href");
+          }
+        }
+
+        function crossfade(src, meta) {
+          const showEl = activeA ? frameB : frameA;
+          const hideEl = activeA ? frameA : frameB;
+          showEl.src = src;
+          updateMeta(meta || {});
+          showEl.classList.remove("hide");
+          void showEl.offsetWidth;
+          showEl.classList.add("show");
+          hideEl.classList.remove("show");
+          hideEl.classList.add("hide");
+          activeA = !activeA;
+        }
+
+        function show(index) {
+          if (!images.length) {
+            emptyEl.hidden = false;
+            return;
+          }
+          emptyEl.hidden = true;
+          current = (index + images.length) % images.length;
+          const img = images[current];
+          crossfade(img.src, img.meta);
+        }
+
+        function next() {
+          show(current + 1);
+        }
+        function prev() {
+          show(current - 1);
+        }
+        function schedule() {
+          clearTimeout(timer);
+          if (!playing) return;
+          timer = setTimeout(() => {
+            next();
+            schedule();
+          }, 3200);
+        }
+
+        // init first frame
+        if (images.length) {
+          const first = images[0];
+          frameA.src = first.src;
+          frameA.classList.add("show");
+          frameB.src = first.src;
+          frameB.classList.add("hide");
+          updateMeta(first.meta || {});
+          schedule();
+        } else {
+          emptyEl.hidden = false;
+        }
+
+        // controls
+        btnPrev.addEventListener("click", () => {
+          prev();
+          setIdleControls(false);
+        });
+        btnNext.addEventListener("click", () => {
+          next();
+          setIdleControls(false);
+        });
+        btnToggle.addEventListener("click", () => {
+          playing = !playing;
+          btnToggle.textContent = playing ? "השהה" : "הפעל";
+          if (playing) {
+            schedule();
+          } else {
+            clearTimeout(timer);
+          }
+          setIdleControls(false);
+        });
+        loopInput.addEventListener("change", () => {
+          /* reserved */
+        });
+
+        // keyboard
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight") {
+            next();
+            setIdleControls(false);
+          } else if (e.key === "ArrowLeft") {
+            prev();
+            setIdleControls(false);
+          } else if (e.key === " ") {
+            e.preventDefault();
+            btnToggle.click();
+          }
+        });
+
+        // idle fade on inactivity
+        let idleT = null;
+        function bump() {
+          setIdleControls(false);
+          clearTimeout(idleT);
+          idleT = setTimeout(() => setIdleControls(true), 2000);
+        }
+        ["mousemove", "keydown", "click"].forEach((ev) =>
+          window.addEventListener(ev, bump)
+        );
+      })();
+    </script>
+  </body>
+</html>
